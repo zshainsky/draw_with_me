@@ -16,9 +16,10 @@ type Client struct {
 	id   string
 	conn *websocket.Conn
 	send chan []byte
+	hub  *Hub
 }
 
-func NewClient(conn *websocket.Conn) *Client {
+func NewClient(conn *websocket.Conn, h *Hub) *Client {
 	id, err := uuid.NewV4()
 	if err != nil {
 		fmt.Printf("problem creating unique id for client, %v", err)
@@ -28,32 +29,35 @@ func NewClient(conn *websocket.Conn) *Client {
 	return &Client{
 		id:   id.String(),
 		conn: conn,
-		send: make(chan []byte),
+		send: make(chan []byte, 256),
+		hub:  h,
 	}
+}
+func (c *Client) SendUpdate(payload string) {
+	c.hub.broadcast <- []byte(payload)
+}
+
+func (c *Client) SendRegistration() {
+	c.hub.register <- c
+}
+
+func (c *Client) SendUnregistration() {
+	c.hub.unregister <- c
+}
+
+func (c *Client) GetRegChan() chan *Client {
+	return c.hub.register
+}
+func (c *Client) GetUnregChan() chan *Client {
+	return c.hub.unregister
+}
+func (c *Client) GetSendChan() chan []byte {
+	return c.send
 }
 
 func (c *Client) GetId() string {
 	return c.id
 }
-
-// func (c *Client) wsHandler(w http.ResponseWriter, r *http.Request) {
-// 	ws := newClientWS(w, r)
-// 	_, msg, err := ws.ReadMessage()
-// 	if err != nil {
-// 		log.Printf("error reading from websocket %v\n", err)
-// 	}
-// 	fmt.Printf("message from websocket: ", msg)
-// }
-
-// func newClientWS(w http.ResponseWriter, r *http.Request) *websocket.Conn {
-// 	conn, err := wsUpgrader.Upgrade(w, r, nil)
-// 	if err != nil {
-// 		log.Printf("prolem upgrading connection to WebSockets %v\n", err)
-// 	}
-
-// 	return conn
-
-// }
 
 func PrintClient() string {
 	return "client"
