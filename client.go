@@ -2,6 +2,8 @@ package draw
 
 import (
 	"fmt"
+	"log"
+	"net/http"
 
 	"github.com/gorilla/websocket"
 	uuid "github.com/nu7hatch/gouuid"
@@ -28,11 +30,34 @@ func NewClient(conn *websocket.Conn, h *Hub) *Client {
 
 	return &Client{
 		id:   id.String(),
-		conn: conn,
+		conn: nil,
 		send: make(chan []byte, 256),
 		hub:  h,
 	}
 }
+
+func (c *Client) ServeWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
+	// Create websocket connection
+	conn, err := wsUpgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Printf("prolem upgrading connection to WebSockets %v\n", err)
+	}
+
+	// Read message from the user interface
+	_, msg, err := conn.ReadMessage()
+	if err != nil {
+		log.Printf("could not read message from ws: %v", err)
+	}
+	fmt.Printf("websocket message: %s\n", msg)
+
+	// Write a message to the user interface
+	err = conn.WriteMessage(1, []byte("New Client"))
+	if err != nil {
+		log.Printf("could not write message to ws: %v", err)
+	}
+
+}
+
 func (c *Client) SendUpdate(payload string) {
 	c.hub.broadcast <- []byte(payload)
 }

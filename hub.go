@@ -22,6 +22,7 @@ func NewHub() *Hub {
 
 func (h *Hub) Run() {
 	fmt.Println("Starting Hub...")
+	// i := 0
 	for {
 		select {
 		case client := <-h.register:
@@ -29,10 +30,12 @@ func (h *Hub) Run() {
 		case client := <-h.unregister:
 			h.UnregisterClient(client)
 		case payload := <-h.broadcast:
-			fmt.Printf("Broadcast message recieved from clinet, %q\n", payload)
+			//fmt.Printf("Broadcast message recieved from clinet, %q\n", payload)
 			h.BroadcastPayload(payload)
-
 		}
+
+		// fmt.Printf("hub iteration: %d\n", i)
+		// i += 1
 	}
 }
 
@@ -40,7 +43,7 @@ func (h *Hub) BroadcastPayload(payload []byte) {
 	for _, client := range h.clients {
 		select {
 		case client.send <- payload:
-			fmt.Printf("payload sent to client %v\n", client.GetId())
+			//fmt.Printf("payload sent to client %v\n", client.GetId())
 		default:
 			fmt.Printf("default: %v\n", client.GetId())
 			h.UnregisterClient(client)
@@ -56,12 +59,17 @@ func (h *Hub) RegisterClient(c *Client) error {
 	return nil
 }
 
-func (h *Hub) UnregisterClient(c *Client) {
+func (h *Hub) UnregisterClient(c *Client) error {
+	if c == nil {
+		return fmt.Errorf("unregister Client when Client is nil %d\n", 0)
+	}
+
 	_, ok := h.clients[c.id]
 	if ok {
 		delete(h.clients, c.id)
 		close(c.send)
 	}
+	return nil
 }
 
 func (h *Hub) GetRegistrationChan() chan *Client {
