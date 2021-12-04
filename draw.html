@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Draw me a pony!</title>
+</head>
+    <body>
+        <div id="client-create">
+            <div id="label-serve-ws">WS Closed</div> 
+            
+            <button id="serve-ws">Serve WebSocket</button>
+            <button id="create-client">Create new client</button>
+        </div>
+    </body>
+
+<script type="application/javascript">
+    const wsStatus = document.getElementById("label-serve-ws")
+
+    document.getElementById("serve-ws").addEventListener('click', event => {
+        if (window['WebSocket']) {
+            const conn = new WebSocket('ws://' + document.location.host + '/ws')
+            
+            conn.onopen = function () {
+                conn.send("WS Open")
+                console.log("WS Open")
+            }
+
+            conn.onclose = evt => { 
+                wsStatus.innerHTML = "WS Closed"
+                console.log("WS Closed")
+            }
+
+            conn.onmessage = evt => {
+                wsStatus.innerHTML = evt.data
+                console.log("onmessage: " + "evt.data")
+            }
+        }
+    })
+
+
+</script>
+
+
+
+</html>
