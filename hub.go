@@ -30,7 +30,6 @@ func (h *Hub) Run() {
 		case client := <-h.unregister:
 			h.UnregisterClient(client)
 		case payload := <-h.broadcast:
-			//fmt.Printf("Broadcast message recieved from clinet, %q\n", payload)
 			h.BroadcastPayload(payload)
 		}
 
@@ -43,7 +42,7 @@ func (h *Hub) BroadcastPayload(payload []byte) {
 	for _, client := range h.clients {
 		select {
 		case client.send <- payload:
-			//fmt.Printf("payload sent to client %v\n", client.GetId())
+			fmt.Printf("payload sent to client (%v): %v\n", client.GetId(), string(payload))
 		default:
 			fmt.Printf("default: %v\n", client.GetId())
 			h.UnregisterClient(client)

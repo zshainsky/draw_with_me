@@ -24,13 +24,13 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	fmt.Print(draw.PrintHub())
+	fmt.Println(draw.PrintHub())
 	hub := draw.NewHub()
-	// go hub.Run()
+	go hub.Run()
 
 	http.HandleFunc("/", serveHome)
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		draw.NewClient(nil, nil).ServeWS(hub, w, r)
+		draw.ServeWS(hub, w, r)
 	})
 
 	log.Fatal(http.ListenAndServe(":3000", nil))

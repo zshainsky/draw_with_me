@@ -21,7 +21,7 @@ type Client struct {
 	hub  *Hub
 }
 
-func NewClient(conn *websocket.Conn, h *Hub) *Client {
+func NewClient(h *Hub, conn *websocket.Conn) *Client {
 	id, err := uuid.NewV4()
 	if err != nil {
 		fmt.Printf("problem creating unique id for client, %v", err)
@@ -30,32 +30,60 @@ func NewClient(conn *websocket.Conn, h *Hub) *Client {
 
 	return &Client{
 		id:   id.String(),
-		conn: nil,
-		send: make(chan []byte, 256),
+		conn: conn,
+		send: make(chan []byte, 5),
 		hub:  h,
 	}
 }
 
-func (c *Client) ServeWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
+func ServeWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	// Create websocket connection
 	conn, err := wsUpgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Printf("prolem upgrading connection to WebSockets %v\n", err)
+		return
 	}
 
-	// Read message from the user interface
-	_, msg, err := conn.ReadMessage()
-	if err != nil {
-		log.Printf("could not read message from ws: %v", err)
-	}
-	fmt.Printf("websocket message: %s\n", msg)
+	// Create new Client and register with hub
+	client := NewClient(hub, conn)
+	hub.register <- client
 
-	// Write a message to the user interface
-	err = conn.WriteMessage(1, []byte("New Client"))
-	if err != nil {
-		log.Printf("could not write message to ws: %v", err)
-	}
+	go client.sendToHub()
+	go client.writeToWS()
+}
 
+// sendToHub() writes messages from the websocket to the hub
+func (c *Client) sendToHub() {
+	// clean up connections
+	defer func() {
+		c.hub.unregister <- c
+		c.conn.Close()
+	}()
+
+	// Read message from the websocket
+	for {
+		_, msg, err := c.conn.ReadMessage()
+		if err != nil {
+			log.Printf("could not read message from ws: %v", err)
+		}
+		fmt.Printf("websocket message: %s\n", msg)
+
+		c.hub.broadcast <- msg
+	}
+}
+
+func (c *Client) writeToWS() {
+	defer func() {
+
+	}()
+	for {
+		payload := <-c.send
+		fmt.Printf("client send chan: %v\n", string(payload))
+		err := c.conn.WriteMessage(1, payload)
+		if err != nil {
+			log.Printf("could not write message to ws: %v\n", err)
+		}
+	}
 }
 
 func (c *Client) SendUpdate(payload string) {

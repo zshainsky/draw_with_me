@@ -6,36 +6,51 @@
 </head>
     <body>
         <div id="client-create">
-            <div id="label-serve-ws">WS Closed</div> 
+            <div id="label-ws-status">WS Closed</div> 
             
-            <button id="serve-ws">Serve WebSocket</button>
-            <button id="create-client">Create new client</button>
+            <button id="green">Green</button>
+            <button id="blue">blue</button>
         </div>
     </body>
 
 <script type="application/javascript">
-    const wsStatus = document.getElementById("label-serve-ws")
+    const wsStatus = document.getElementById("label-ws-status")
+    const greenButton = document.getElementById("green")
+    const blueButton = document.getElementById("blue")
 
-    document.getElementById("serve-ws").addEventListener('click', event => {
-        if (window['WebSocket']) {
-            const conn = new WebSocket('ws://' + document.location.host + '/ws')
-            
-            conn.onopen = function () {
-                conn.send("WS Open")
-                console.log("WS Open")
-            }
+    
 
-            conn.onclose = evt => { 
-                wsStatus.innerHTML = "WS Closed"
-                console.log("WS Closed")
-            }
-
-            conn.onmessage = evt => {
-                wsStatus.innerHTML = evt.data
-                console.log("onmessage: " + "evt.data")
-            }
+    if (window['WebSocket']) {
+        const conn = new WebSocket('ws://' + document.location.host + '/ws')
+        
+        conn.onopen = function () {
+            conn.send("WS Open")
+            wsStatus.innerHTML = "Selected Color: " + "WS Open"
+            console.log("WS Open")
         }
-    })
+
+        conn.onclose = evt => { 
+            wsStatus.innerHTML = "WS Closed"
+            console.log("WS Closed")
+        }
+
+        conn.onmessage = evt => {
+            wsStatus.innerHTML = "Selected Color: " + evt.data
+            console.log("onmessage: " + evt.data)
+        }
+
+        greenButton.onclick = event => {
+            conn.send("green")
+        }
+
+        blueButton.onclick = event => {
+            conn.send("blue")
+        }
+        
+
+
+
+    }
 
 
 </script>
