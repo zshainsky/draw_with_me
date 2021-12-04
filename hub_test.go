@@ -56,25 +56,26 @@ func TestHUB(t *testing.T) {
 		assertRegisteredClientId(t, got, client, err)
 
 	})
-	// t.Run("received message from un-register channel", func(t *testing.T) {
-	// 	hub := draw.NewHub()
-	// 	client := draw.NewClient(nil, hub)
+	t.Run("received message from un-register channel", func(t *testing.T) {
+		hub := draw.NewHub()
+		client := draw.NewClient(nil, hub)
+		defer close(client.GetRegChan())
+		defer close(client.GetUnregChan())
 
-	// 	// Run goroutine of hub listening for inputs from register/unresiger/broadcast
-	// 	go hub.Run()
+		// Run goroutine of hub listening for inputs from register/unresiger/broadcast
+		go hub.Run()
 
-	// 	hub.RegisterClient(client)
-	// 	got, err := hub.GetClient(client)
-	// 	want := client
-	// 	assertRegisteredClientId(t, got, want, err)
+		hub.RegisterClient(client)
+		got, err := hub.GetClient(client)
+		want := client
+		assertRegisteredClientId(t, got, want, err)
 
-	// 	// Send unregistration and wait  for hub to get message from client
-	// 	defer close(client.GetUnregChan())
-	// 	client.SendUnregistration()
+		// Send unregistration and wait  for hub to get message from client
+		client.SendUnregistration()
 
-	// 	got, _ = hub.GetClient(client)
-	// 	assertUnregisteredClient(t, got)
-	// })
+		got, _ = hub.GetClient(client)
+		assertUnregisteredClient(t, got)
+	})
 
 	t.Run("recieved payload from client to hub", func(t *testing.T) {
 		hub := draw.NewHub()
