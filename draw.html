@@ -11,20 +11,37 @@
             <button id="green">Green</button>
             <button id="blue">blue</button>
         </div>
+        <div class="canvas">
+            <p id="canvas-details">Meta data:</p>
+            <canvas id="draw" width="600" height="350" style="border:1px solid #000000;"></canvas>
+        </div>
+        
     </body>
 
 <script type="application/javascript">
+    // ws variables
     const wsStatus = document.getElementById("label-ws-status")
     const greenButton = document.getElementById("green")
     const blueButton = document.getElementById("blue")
 
-    
+    // paint variables
+    const canvas = document.getElementById("draw");
+    const details = document.getElementById("canvas-details");
+    var ctx = canvas.getContext('2d');
 
+    var lastX = 0;
+    var lastY = 0;
+    var curX = 0;
+    var curY = 0;
+
+    var isMouseDown = false;
+
+    // create web socket connection
     if (window['WebSocket']) {
         const conn = new WebSocket('ws://' + document.location.host + '/ws')
         
         conn.onopen = function () {
-            conn.send("WS Open")
+            // conn.send("WS Open")
             wsStatus.innerHTML = "Selected Color: " + "WS Open"
             console.log("WS Open")
         }
@@ -46,11 +63,56 @@
         blueButton.onclick = event => {
             conn.send("blue")
         }
+
+
+        // Paint event listeners
+        canvas.addEventListener('mousedown', function (e) {
+            // React to the mouse down event
+            isMouseDown = true;
+            details.innerText = "Meta data: " + "X: " + e.pageX + " Y: " + e.pageY;
+                
+            curX = e.pageX - canvas.offsetLeft;
+            curY = e.pageY - canvas.offsetTop;
+            lastX = curX
+            lastY = curY
+        });
+
+        canvas.addEventListener('mousemove', function (e) {
+            if (isMouseDown) {
+                details.innerText = "Meta data: " + "X: " + e.pageX + " Y: " + e.pageY;
+                
+                lastX = curX
+                lastY = curY
+                
+                curX = e.pageX - canvas.offsetLeft;
+                curY = e.pageY - canvas.offsetTop;
+                
+                paint(ctx, curX, curY, lastX, lastY);
+            }
+        });
+
+        canvas.addEventListener('mouseup', function (e) {
+            if (isMouseDown) {
+                isMouseDown = false;
+            }
+        });
+
+        var paint = function (ctx, pageX, pageY, lastX, lastY) {
+            // Set line width
+            ctx.lineWidth = 5;
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = 'blue';
         
-
-
-
-    }
+            // Paint
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(pageX, pageY);
+            ctx.closePath();
+            ctx.stroke();
+        }
+}
+	
 
 
 </script>
