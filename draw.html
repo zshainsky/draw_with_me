@@ -33,6 +33,7 @@
     var lastY = 0;
     var curX = 0;
     var curY = 0;
+    var color = "#B42FA0";
 
     var isMouseDown = false;
 
@@ -54,6 +55,17 @@
         conn.onmessage = evt => {
             wsStatus.innerHTML = "Selected Color: " + evt.data
             console.log("onmessage: " + evt.data)
+
+            if (evt.data) {
+                try {
+                    jsonEvent = JSON.parse(evt.data);
+                } catch(e) {
+                    alert(e); // error in the above string (in this case, yes)!
+                }
+            }
+            
+            // draw from senders canvas
+            paint(ctx, jsonEvent.curX, jsonEvent.curY, jsonEvent.lastX, jsonEvent.lastY, jsonEvent.color);
         }
 
         greenButton.onclick = event => {
@@ -69,7 +81,6 @@
         canvas.addEventListener('mousedown', function (e) {
             // React to the mouse down event
             isMouseDown = true;
-            details.innerText = "Meta data: " + "X: " + e.pageX + " Y: " + e.pageY;
                 
             curX = e.pageX - canvas.offsetLeft;
             curY = e.pageY - canvas.offsetTop;
@@ -79,7 +90,6 @@
 
         canvas.addEventListener('mousemove', function (e) {
             if (isMouseDown) {
-                details.innerText = "Meta data: " + "X: " + e.pageX + " Y: " + e.pageY;
                 
                 lastX = curX
                 lastY = curY
@@ -87,7 +97,10 @@
                 curX = e.pageX - canvas.offsetLeft;
                 curY = e.pageY - canvas.offsetTop;
                 
-                paint(ctx, curX, curY, lastX, lastY);
+                paintJSON = paint(ctx, curX, curY, lastX, lastY, color);
+                details.innerText = "This Client's Canvas: " + JSON.stringify(paintJSON);
+
+                conn.send(JSON.stringify(paintJSON));
             }
         });
 
@@ -97,12 +110,12 @@
             }
         });
 
-        var paint = function (ctx, pageX, pageY, lastX, lastY) {
+        var paint = function (ctx, pageX, pageY, lastX, lastY, color) {
             // Set line width
             ctx.lineWidth = 5;
             ctx.lineJoin = 'round';
             ctx.lineCap = 'round';
-            ctx.strokeStyle = 'blue';
+            ctx.strokeStyle = color;
         
             // Paint
             ctx.beginPath();
@@ -110,6 +123,9 @@
             ctx.lineTo(pageX, pageY);
             ctx.closePath();
             ctx.stroke();
+
+            // Return values to send to ws
+            return {curX: curX, curY: curY, lastX: lastX, lastY: lastY, color: color}
         }
 }
 	
