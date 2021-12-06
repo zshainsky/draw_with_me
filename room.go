@@ -48,16 +48,16 @@ func (room *Room) StartRoom() {
 
 func ServeRoom(w http.ResponseWriter, r *http.Request) {
 	log.Println(r.URL)
-	if r.URL.Path == "/create-room" {
-		// create unique room and start hub
-		room := NewRoom()
-		fmt.Printf("created room in ServeRoom function Handler id(room-%v)\n", room.Id)
-		room.StartRoom()
+	// if r.URL.Path == "/create-room" {
+	// 	// create unique room and start hub
+	// 	room := NewRoom()
+	// 	fmt.Printf("created room in ServeRoom function Handler id(room-%v)\n", room.Id)
+	// 	room.StartRoom()
 
-		// write room id (url) back to the server
-		w.Write([]byte("/room-" + room.Id))
-		return
-	}
+	// 	// write room id (url) back to the server
+	// 	w.Write([]byte("/room-" + room.Id))
+	// 	return
+	// }
 	if !strings.Contains(r.URL.Path, "/room") {
 		http.Error(w, "Not found", http.StatusNotFound)
 		return

@@ -18,38 +18,80 @@
     <script type="application/javascript">
         const createRoom = document.getElementById("create-room");
         const roomsList = document.getElementById("rooms-list");
-
-        function processData(data) {
+        // On page load
+        window.addEventListener('load', function (e) {
+            var client = new XMLHttpRequest();
+            client.onload = getRoomsHandler;
+            client.open("GET", "get-rooms");
+            client.send();
+        })
+        // GET create-room when button is selected
+        createRoom.addEventListener("click", function (e) {
+            var client = new XMLHttpRequest();
+            client.onload = createRoomHandler;
+            client.open("GET", "create-room");
+            client.send();
+        });
+        
+        // Handle response from "create-room" GET request
+        function createRoomHandler() {
+            console.log(this);
+            if(this.status == 200 &&
+                this.response != null) {
+                // success!
+                processCreateRoomData(this.response);
+            } else {
+                // something went wrong
+                console.log("issue with GET request to /create-room")
+            }
+        }
+        // Handle create-room GET request
+        function processCreateRoomData(data) {
             // taking care of data
             console.log(data);
+            addListElement(data, roomsList);
+            
+        }
+        // Handle response from "create-room" GET request
+        function getRoomsHandler() {
+            console.log(this);
+            if(this.status == 200 &&
+                this.response != null) {
+                // success!
+                processGetRoomsData(this.response);
+            } else {
+                // something went wrong
+                console.log("issue with GET request to /create-room")
+            }
+        }
+        // Handle create-room GET request
+        function processGetRoomsData(data) {
+            console.log(data);
+            if(data) {
+                try {
+                        jsonResponse = JSON.parse(data);
+                        if(jsonResponse.RoomsList.length > 0) {
+                            jsonResponse.RoomsList.forEach(roomLink => {
+                                console.log(roomLink)
+                                addListElement("/room-"+roomLink, roomsList);
+                            });
+                        }
+                    } catch(e) {
+                        alert(e); // error in the above string (in this case, yes)!
+                    }
+            }
+        }
+
+        function addListElement(data, parentElement) {
             var entry = document.createElement("li");
             var link = document.createElement("a")
             link.appendChild(document.createTextNode(data));
             link.href = document.location.href.substring(0, document.location.href.length-1) + data
 
             entry.appendChild(link);
-            roomsList.appendChild(entry);
+            parentElement.appendChild(entry);
         }
 
-        function handler() {
-            console.log(this);
-            if(this.status == 200 &&
-                this.response != null) {
-                // success!
-                processData(this.response);
-            } else {
-                // something went wrong
-                console.log()
-            
-            }
-        }
-
-        createRoom.addEventListener("click", function (e) {
-            var client = new XMLHttpRequest();
-            client.onload = handler;
-            client.open("GET", "create-room");
-            client.send();
-        });
         
     </script>
 
