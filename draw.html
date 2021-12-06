@@ -39,41 +39,42 @@
 
     // create web socket connection
     if (window['WebSocket']) {
-        const conn = new WebSocket('ws://' + document.location.host + '/ws')
+        const conn = new WebSocket('ws://' + document.location.host + document.location.pathname + '/ws');
+        console.log('ws://' + document.location.host + document.location.pathname + '/ws');
         
         conn.onopen = function () {
             // conn.send("WS Open")
-            wsStatus.innerHTML = "Selected Color: " + "WS Open"
-            console.log("WS Open")
+            wsStatus.innerHTML = "Selected Color: " + "WS Open";
+            console.log("WS Open");
         }
 
         conn.onclose = evt => { 
-            wsStatus.innerHTML = "WS Closed"
-            console.log("WS Closed")
+            wsStatus.innerHTML = "WS Closed";
+            console.log("WS Closed");
         }
 
         conn.onmessage = evt => {
-            wsStatus.innerHTML = "Selected Color: " + evt.data
-            console.log("onmessage: " + evt.data)
-
+            wsStatus.innerHTML = "Selected Color: " + evt.data;
+            console.log("onmessage: " + evt.data);
+            // This only works if evt.data is receicing a Paint JSON event
             if (evt.data) {
                 try {
                     jsonEvent = JSON.parse(evt.data);
+                    // draw from senders canvas
+                    paint(ctx, jsonEvent.curX, jsonEvent.curY, jsonEvent.lastX, jsonEvent.lastY, jsonEvent.color);
                 } catch(e) {
                     alert(e); // error in the above string (in this case, yes)!
                 }
             }
             
-            // draw from senders canvas
-            paint(ctx, jsonEvent.curX, jsonEvent.curY, jsonEvent.lastX, jsonEvent.lastY, jsonEvent.color);
         }
 
         greenButton.onclick = event => {
-            conn.send("green")
+            conn.send("green");
         }
 
         blueButton.onclick = event => {
-            conn.send("blue")
+            conn.send("blue");
         }
 
 
@@ -84,15 +85,15 @@
                 
             curX = e.pageX - canvas.offsetLeft;
             curY = e.pageY - canvas.offsetTop;
-            lastX = curX
-            lastY = curY
+            lastX = curX;
+            lastY = curY;
         });
 
         canvas.addEventListener('mousemove', function (e) {
             if (isMouseDown) {
                 
-                lastX = curX
-                lastY = curY
+                lastX = curX;
+                lastY = curY;
                 
                 curX = e.pageX - canvas.offsetLeft;
                 curY = e.pageY - canvas.offsetTop;
@@ -125,7 +126,7 @@
             ctx.stroke();
 
             // Return values to send to ws
-            return {curX: curX, curY: curY, lastX: lastX, lastY: lastY, color: color}
+            return {curX: curX, curY: curY, lastX: lastX, lastY: lastY, color: color};
         }
 }
 	

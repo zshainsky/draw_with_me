@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Draw with me</title>
+</head>
+    <body>
+        <div>
+            <h1> Home page</h1>
+            <p>
+                <button id="create-room">Create new room</button>
+            </p>
+        </div>
+        <div id="rooms"> 
+            <ul id="rooms-list"></ul>
+        </div>
+    </body>
+    <script type="application/javascript">
+        const createRoom = document.getElementById("create-room");
+        const roomsList = document.getElementById("rooms-list");
+
+        function processData(data) {
+            // taking care of data
+            console.log(data);
+            var entry = document.createElement("li");
+            var link = document.createElement("a")
+            link.appendChild(document.createTextNode(data));
+            link.href = document.location.href.substring(0, document.location.href.length-1) + data
+
+            entry.appendChild(link);
+            roomsList.appendChild(entry);
+        }
+
+        function handler() {
+            console.log(this);
+            if(this.status == 200 &&
+                this.response != null) {
+                // success!
+                processData(this.response);
+            } else {
+                // something went wrong
+                console.log()
+            
+            }
+        }
+
+        createRoom.addEventListener("click", function (e) {
+            var client = new XMLHttpRequest();
+            client.onload = handler;
+            client.open("GET", "create-room");
+            client.send();
+        });
+        
+    </script>
+
+</html>
