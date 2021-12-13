@@ -139,7 +139,7 @@ class RoomCanvas extends LitElement {
             }
             
             conn.onmessage = evt => {
-                this.renderRoot.querySelector('#canvas-details').innerText = "Selected Color: " + evt.data;
+                // this.renderRoot.querySelector('#canvas-details').innerText = "Selected Color: " + evt.data;
                 var canvas = this.renderRoot.querySelector('#canvas');
                 if (!canvas) {
                     console.log("could not find canvas");
@@ -150,13 +150,23 @@ class RoomCanvas extends LitElement {
                     console.log("could not find canvas");
                     return
                 }
-                console.log("onmessage: " + evt.data);
+                // console.log("onmessage: " + evt.data);
                 // This only works if evt.data is receicing a Paint JSON event
                 if (evt.data) {
                     try {
                         var jsonEvent = JSON.parse(evt.data);
-                        // draw from senders canvas
-                        this.paint(ctx, jsonEvent.curX, jsonEvent.curY, jsonEvent.lastX, jsonEvent.lastY, jsonEvent.color);
+                        if(jsonEvent) {
+                            if(jsonEvent.length > 0) {
+                                for (let i = 0; i < jsonEvent.length; i++) {
+                                    // draw from senders canvas
+                                    this.paint(ctx, jsonEvent[i]["CurX"], jsonEvent[i]["CurY"], jsonEvent[i]["LastX"], jsonEvent[i]["LastY"], jsonEvent[i]["Color"]);
+                                }
+                            } else {
+                                // draw from senders canvas
+                                this.paint(ctx, jsonEvent.curX, jsonEvent.curY, jsonEvent.lastX, jsonEvent.lastY, jsonEvent.color);
+                            }
+                        }
+                        
                     } catch(e) {
                         console.log("error parsing json event from websocket: "+ e); // error in the above string (in this case, yes)!
                     }

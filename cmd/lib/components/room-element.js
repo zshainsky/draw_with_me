@@ -35,6 +35,9 @@ class RoomElement extends LitElement {
         return html`
                     <div class="clickable open-room-btn center" @click="${this.openRoom}"> open </div>
                     <div class="title">${this.name}</div>
+                    <div class="canvas-preview icon">
+                        
+                    </div>
                     ` 
 
         

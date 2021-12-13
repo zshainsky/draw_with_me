@@ -7,6 +7,7 @@ export const gridStyles = css`
                 grid-template-areas: 
                     "a"
                     "b";
+                grid-template-rows: 200px 200px;
             }
         }
         @media only screen and (min-width: 900px) {
@@ -15,17 +16,19 @@ export const gridStyles = css`
                 grid-template-areas: 
                     "a a"
                     "b b";
+                grid-template-rows: 250px 250px;
             }
         }
         #rooms {
-            margin: 1rem 75px 1rem 75px;
+            /* margin: 1rem 75px 1rem 75px; */
+            min-height: 100%;
         }
         .grid-wrapper {
                 display: grid;
-                grid-gap: 1rem;
+                grid-gap: 1.5rem;
                 color: #444;
                 transition: 1s;
-                min-height: 100%;
+                margin: 4%;
         }
         .grid-room {
             background-color: #444;
@@ -63,7 +66,6 @@ export const gridStyles = css`
 
         .empty-grid {
             grid-area: a;
-            max-height: 15%;
             background-color: #03463a;
         }
 

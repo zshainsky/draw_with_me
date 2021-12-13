@@ -22,11 +22,11 @@ type Client struct {
 }
 
 type PaintData struct {
-	lastX string `json:lastX`
-	lastY string `json:lastY`
-	curX  string `json:curX`
-	curY  string `json:curY`
-	color string `json:color` //should be hex color (ex: #0000FF)
+	lastX float64 `json:lastX`
+	lastY float64 `json:lastY`
+	curX  float64 `json:curX`
+	curY  float64 `json:curY`
+	color string  `json:color` //should be hex color (ex: #0000FF)
 }
 
 func NewClient(h *Hub, conn *websocket.Conn) *Client {
