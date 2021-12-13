@@ -25,6 +25,7 @@ export const gridStyles = css`
                 grid-gap: 1rem;
                 color: #444;
                 transition: 1s;
+                min-height: 100%;
         }
         .grid-room {
             background-color: #444;
@@ -62,6 +63,7 @@ export const gridStyles = css`
 
         .empty-grid {
             grid-area: a;
+            max-height: 15%;
             background-color: #03463a;
         }
 

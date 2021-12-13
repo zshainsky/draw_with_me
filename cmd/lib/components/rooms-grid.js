@@ -23,11 +23,22 @@ class RoomsGrid extends LitElement {
     }
     async fetchRooms() {
         this.loading = true;
-        const response = await fetch('/get-rooms')
+        const response = await fetch('/get-rooms');
         const jsonResponse = await response.json();
         this.rooms = jsonResponse["RoomsList"];
         this.loading = false;
         console.log("rooms list: " + this.rooms);
+    }
+    async createRoom() {
+        this.loading = true;
+        const response = await fetch('/create-room');
+        console.log(response);
+        const jsonResponse = await response.json();
+        console.log(jsonResponse);
+        // add to rooms
+        this.rooms = [jsonResponse];
+        console.log('/room-' + jsonResponse["Id"]);
+        this.loading = false;
     }
 
     render () {
@@ -42,7 +53,7 @@ class RoomsGrid extends LitElement {
                         ${this.rooms.map( 
                             (item, index) => html `
                                     
-                                <room-element class="grid-room clickable"  @click="${this.handleClick}" .id=${item} .name=${item} .isRoomSelected=${this.isRoomSelected} .selectedRoomId=${this.selectedRoomId}></room-element>
+                                <room-element class="grid-room clickable"  @click="${this.handleClick}" .id=${item["Id"]} .name=${item["Id"]} .isRoomSelected=${this.isRoomSelected} .selectedRoomId=${this.selectedRoomId}></room-element>
                                 `
                         )}
                     </div>
@@ -50,9 +61,9 @@ class RoomsGrid extends LitElement {
                 :
                 html`
                 <div class="grid-wrapper">
-                    <div class="grid-room empty-grid"> 
+                    <div class="grid-room empty-grid clicakable" @click="${this.createRoom}"> 
                         <p> Create your first Room </p>
-                        <button class="clickable">New Room</button>
+                        
                     </div>
                 </div>
                 `
@@ -93,6 +104,9 @@ class RoomsGrid extends LitElement {
     }
     openRoom(e) {
 
+    }
+    handleCreateNewRoom(e) {
+        this.createRoom();
     }
     // handleMouseOver(e) {
     //     console.log("mouse over: " +e.currentTarget.classList);

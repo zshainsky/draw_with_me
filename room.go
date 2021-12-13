@@ -17,6 +17,10 @@ type Room struct {
 	router   *mux.Router
 }
 
+type RoomJSON struct {
+	Id string `json:id`
+}
+
 const htmlFileName = "../room.html"
 
 func NewRoom(r *mux.Router) *Room {
