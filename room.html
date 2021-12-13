@@ -1,8 +1,9 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
     <meta content="width=device-width, initial-scale=1" name="viewport" />
-    <script type="module" src="lib/out/rooms-grid.js"></script>
-    <script type="module" src="lib/out/room-element.js"></script>
     <script type="module" src="lib/out/navigation-bar.js"></script>
+    <script type="module" src="lib/out/room-canvas.js"></script>
+    <script type="module" src="lib/out/tool-palette.js"></script>
     <script type="module" src="lib/out/footer-bar.js"></script>
     <style>
         body {
@@ -10,12 +11,16 @@
             background-image: url('lib/img/paint_background.jpg');
         }
     </style>
-    <header>
-        <title>Lit Testing...</title>
-    </header>
+    
+<header>
+    <meta charset="UTF-8">
+    <title>Draw me a pony!</title>
+</header>
     <body>
         <navigation-bar></navigation-bar>
-        <rooms-grid></rooms-grid>
-        <footer-bar></footer-bar>
+        <room-canvas></room-canvas>
+        <footer></footer>
+        
     </body>
+
 </html>

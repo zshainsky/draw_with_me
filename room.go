@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/gorilla/mux"
 	uuid "github.com/nu7hatch/gouuid"
 )
 
@@ -13,11 +14,12 @@ type Room struct {
 	Id       string
 	Hub      *Hub
 	HTMLFile string
+	router   *mux.Router
 }
 
-const htmlFileName = "../draw.html"
+const htmlFileName = "../room.html"
 
-func NewRoom() *Room {
+func NewRoom(r *mux.Router) *Room {
 	id, err := uuid.NewV4()
 	if err != nil {
 		fmt.Printf("problem creating unique id for client, %v", err)
@@ -28,6 +30,7 @@ func NewRoom() *Room {
 		Id:       id.String(),
 		Hub:      nil, // Hub is set when the room is started
 		HTMLFile: htmlFileName,
+		router:   r,
 	}
 
 }
@@ -39,8 +42,8 @@ func (room *Room) StartRoom() {
 
 	go hub.Run()
 
-	http.HandleFunc(fmt.Sprintf("/room-%v", room.Id), ServeRoom)
-	http.HandleFunc(fmt.Sprintf("/room-%v/ws", room.Id), func(w http.ResponseWriter, r *http.Request) {
+	room.router.HandleFunc(fmt.Sprintf("/room-%v", room.Id), ServeRoom)
+	room.router.HandleFunc(fmt.Sprintf("/room-%v/ws", room.Id), func(w http.ResponseWriter, r *http.Request) {
 		// create and serve client
 		ServeWS(room.Hub, w, r)
 	})

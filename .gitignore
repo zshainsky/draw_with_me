@@ -1,1 +1,3 @@
 .vscode/launch.json
+cmd/lib/node_modules/
+cmd/lib/out/
