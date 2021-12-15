@@ -36,11 +36,9 @@ class RoomElement extends LitElement {
                     <div class="clickable open-room-btn center" @click="${this.openRoom}"> open </div>
                     <div class="title">${this.name}</div>
                     <div class="canvas-preview icon">
-                        
-                    </div>
-                    ` 
 
-        
+                    </div>
+                    `;
     }
     openRoom (e) {
         console.log("open room" + this.isRoomSelected);

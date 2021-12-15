@@ -155,18 +155,15 @@ class RoomCanvas extends LitElement {
                 if (evt.data) {
                     try {
                         var jsonEvent = JSON.parse(evt.data);
-                        if(jsonEvent) {
-                            if(jsonEvent.length > 0) {
-                                for (let i = 0; i < jsonEvent.length; i++) {
-                                    // draw from senders canvas
-                                    this.paint(ctx, jsonEvent[i]["CurX"], jsonEvent[i]["CurY"], jsonEvent[i]["LastX"], jsonEvent[i]["LastY"], jsonEvent[i]["Color"]);
-                                }
-                            } else {
+                        if(jsonEvent.length > 0) {// paint event with more than one stroke
+                            for (let i = 0; i < jsonEvent.length; i++) {
                                 // draw from senders canvas
-                                this.paint(ctx, jsonEvent.curX, jsonEvent.curY, jsonEvent.lastX, jsonEvent.lastY, jsonEvent.color);
+                                this.paint(ctx, jsonEvent[i]["CurX"], jsonEvent[i]["CurY"], jsonEvent[i]["LastX"], jsonEvent[i]["LastY"], jsonEvent[i]["Color"]);
                             }
+                        } else { // paint event with only one stroke
+                            // draw from senders canvas
+                            this.paint(ctx, jsonEvent.curX, jsonEvent.curY, jsonEvent.lastX, jsonEvent.lastY, jsonEvent.color);
                         }
-                        
                     } catch(e) {
                         console.log("error parsing json event from websocket: "+ e); // error in the above string (in this case, yes)!
                     }

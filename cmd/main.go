@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/zshainsky/draw-with-me"
+	"google.golang.org/api/idtoken"
 )
 
 var rooms []*draw.Room
@@ -17,7 +19,18 @@ type roomsJSON struct {
 	RoomsList []draw.RoomJSON
 }
 
+type AuthRequestBody struct {
+	Credential string
+}
+
+type APIResponse struct {
+	Code int //should be http.<response code>
+}
+
+const googleClientId = "406504108908-4djtjr6q3lil4rgrnbjproqi7ruc59vs.apps.googleusercontent.com"
+
 const htmlFileName = "../home.html"
+const htmlSigninFileName = "../signin.html"
 
 func serveHome(w http.ResponseWriter, r *http.Request) {
 	log.Println(r.URL)
@@ -62,13 +75,13 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 			Id: room.Id,
 		}
 		// write struct as json string
-		responsJSON, err := json.Marshal(response)
+		responseJSON, err := json.Marshal(response)
 		if err != nil {
 			fmt.Printf("get-rooms: could not create json string to return in responseText")
 		}
 
 		// write room id (url) back to the server
-		w.Write([]byte(responsJSON))
+		w.Write([]byte(responseJSON))
 		return
 	}
 	if r.URL.Path != "/" {
@@ -83,6 +96,57 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, htmlFileName)
 }
 
+func serveSignin(w http.ResponseWriter, r *http.Request) {
+	// TODO: Break out /authorize end point into own handler  because may be called from outside of the signin flow
+	if r.URL.Path == "/authorize" && r.Method == "POST" {
+		reqBodyJSON := AuthRequestBody{}
+		// convert request body into []byte
+		err := json.NewDecoder(r.Body).Decode(&reqBodyJSON)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Printf("%+v\n", reqBodyJSON.Credential)
+
+		if reqBodyJSON.Credential == "" {
+			fmt.Printf("issue getting Credential from request body\n")
+		}
+
+		payload, err := idtoken.Validate(context.Background(), string(reqBodyJSON.Credential), googleClientId)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Print(payload.Claims)
+
+		// TODO: Perform auth token verification
+		// TODO: Check if user exists in database
+		// TODO: if user exists --> get list of rooms for this user --> Return list to homepage
+		// TODO: create user if not exists --> Respond on success --> go to homepage
+
+		// format response to frontend as JSON object
+		responseJSON, err := json.Marshal(APIResponse{
+			Code: http.StatusOK,
+		})
+		if err != nil {
+			fmt.Printf("get-rooms: could not create json string to return in responseText")
+		}
+		// fmt.Printf("Send JSON response:\n%s\n", responseJSON)
+
+		// write response to fron end
+		w.Write([]byte(responseJSON))
+
+		return
+	}
+	if r.URL.Path != "/signin" && r.URL.Path != "/authorize" {
+		http.Error(w, "Not found", http.StatusNotFound)
+		return
+	}
+	if r.Method != "GET" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	http.ServeFile(w, r, htmlSigninFileName)
+}
+
 func main() {
 	router = mux.NewRouter()
 	router.HandleFunc("/", serveHome)
@@ -91,6 +155,9 @@ func main() {
 	router.PathPrefix("/lib/").Handler(
 		http.StripPrefix("/lib/", http.FileServer(http.Dir("lib/"))),
 	)
+
+	router.HandleFunc("/signin", serveSignin)
+	router.HandleFunc("/authorize", serveSignin)
 
 	// go func(rooms []*draw.Room) {
 	// 	rooms = append(rooms, <-draw.roomChan)

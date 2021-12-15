@@ -13,11 +13,12 @@ type Hub struct {
 	canvasInMemory []*PaintEvent
 }
 type paintEvent struct {
-	CurX  float64
-	CurY  float64
-	LastX float64
-	LastY float64
-	Color string
+	CurX   float64
+	CurY   float64
+	LastX  float64
+	LastY  float64
+	Color  string
+	UserId string
 }
 type PaintEvent struct {
 	paintEvent
@@ -42,10 +43,10 @@ func (h *Hub) Run() {
 		case client := <-h.unregister:
 			h.UnregisterClient(client)
 		case payload := <-h.broadcast:
-			h.writePaintEvent(payload)
 			// go func(p []byte) {
 			// 	time.Sleep(time.Millisecond * 500)
 			// }(payload)
+			h.writePaintEvent(payload)
 			h.BroadcastPayload(payload)
 		}
 	}
@@ -67,13 +68,10 @@ func (h *Hub) RegisterClient(c *Client) error {
 	if c == nil {
 		return fmt.Errorf("rigister Client when Client is nil %d\n", 0)
 	}
-
-	//if first client in the room (len(h.clients) == 0)
-	// create entry in db for this room's canvas
-
+	// Add client to the list of active clients maintained by hub and send current canvas state
 	h.clients[c.id] = c
-
 	h.sendCanvasState(c)
+
 	return nil
 }
 
@@ -90,8 +88,9 @@ func (h *Hub) UnregisterClient(c *Client) error {
 	return nil
 }
 
+// In memory store
+// Load payload data into a PaintEvent struct which is sent as proper JSON from the frontend and stored as a []byte
 func (h *Hub) writePaintEvent(payload []byte) {
-
 	var event = &PaintEvent{}
 	if err := json.Unmarshal(payload, event); err != nil {
 		panic(err)
@@ -99,13 +98,10 @@ func (h *Hub) writePaintEvent(payload []byte) {
 	fmt.Printf("PaintEvent: %v\n", event)
 
 	h.canvasInMemory = append(h.canvasInMemory, event)
-
-	// responsJSON, err := json.Marshal(h.canvasInMemory)
-	// if err != nil {
-	// 	fmt.Printf("get-rooms: could not create json string to return in responseText")
-	// }
-	// fmt.Printf("\n\n%v\n\n", string(responsJSON))
 }
+
+// Send from in memory store
+// Send the canvas state (all paint events stored in h.canvasInMemory) to client send chan []byte
 func (h *Hub) sendCanvasState(c *Client) {
 	responsJSON, err := json.Marshal(h.canvasInMemory)
 	if err != nil {
