@@ -33,6 +33,9 @@ const htmlSigninFileName = "../signin.html"
 
 func serveHome(w http.ResponseWriter, r *http.Request) {
 	log.Printf("serveHome: %v", r.URL)
+	// Access context values in handlers like this - Use Payload information to route request to the database for this specifci users
+	payload := r.Context().Value("jwt_payload")
+	fmt.Printf("\n serveHome: Contexts: %+v \n", payload)
 	// write list of rooms as a response to the api call in json format
 	// TODO: This is redundant...remove the fore loop and replace with roomsJSON{RoomsList: rooms}. Only need to pass in the reference to the globabl variable rooms
 	if r.URL.Path == "/get-rooms" {
@@ -115,14 +118,6 @@ func serveSignin(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		credential := r.PostFormValue("credential")
-		// fmt.Printf("%+v\n", credential)
-
-		// // Check if credential is Valid
-		// payload, err := idtoken.Validate(context.Background(), string(credential), googleClientId)
-		// if err != nil {
-		// 	panic(err)
-		// }
-		// fmt.Print(payload.Claims)
 
 		// // TODO: Check if user exists in database
 		// // TODO: if user exists --> get list of rooms for this user --> Return list to homepage
@@ -192,8 +187,8 @@ func checkDoubleSubmitCookie(w http.ResponseWriter, r *http.Request) {
 func main() {
 	router = mux.NewRouter()
 	router.Handle("/", draw.AuthMiddleware(serveHome))
-	router.HandleFunc("/get-rooms", serveHome)
-	router.HandleFunc("/create-room", serveHome)
+	router.Handle("/get-rooms", draw.AuthMiddleware(serveHome))
+	router.Handle("/create-room", draw.AuthMiddleware(serveHome))
 
 	router.HandleFunc("/signin", serveSignin)
 	router.HandleFunc("/authorize", serveSignin)
