@@ -16,7 +16,8 @@ class RoomsGrid extends LitElement {
         this.isRoomSelected = false;
         this.selectedRoomId = "";
         console.log(this.isRoomSelected);
-
+        console.log(this.rooms, !this.rooms);
+        // if rooms doesn't exist, create it
         if(!this.rooms) {
             this.fetchRooms();
         }

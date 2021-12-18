@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -9,7 +8,6 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/zshainsky/draw-with-me"
-	"google.golang.org/api/idtoken"
 )
 
 var rooms []*draw.Room
@@ -34,10 +32,11 @@ const htmlFileName = "../home.html"
 const htmlSigninFileName = "../signin.html"
 
 func serveHome(w http.ResponseWriter, r *http.Request) {
-	log.Println(r.URL)
+	log.Printf("serveHome: %v", r.URL)
 	// write list of rooms as a response to the api call in json format
 	// TODO: This is redundant...remove the fore loop and replace with roomsJSON{RoomsList: rooms}. Only need to pass in the reference to the globabl variable rooms
 	if r.URL.Path == "/get-rooms" {
+		fmt.Printf("/get-rooms cookies: %+v", r.Cookies())
 		roomIds := []draw.RoomJSON{}
 		response := roomsJSON{
 			RoomsList: roomIds,
@@ -64,6 +63,7 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.URL.Path == "/create-room" {
+		fmt.Printf("/create-room cookies: %+v", r.Cookies())
 
 		// create unique room and start hub
 		room := draw.NewRoom(router)
@@ -98,42 +98,16 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 }
 
 func serveSignin(w http.ResponseWriter, r *http.Request) {
+	log.Printf("serveSignin: %v", r.URL)
 	// TODO: Break out /authorize end point into own handler  because may be called from outside of the signin flow
 	if r.URL.Path == "/authorize" && r.Method == "POST" {
 		// Authorization is using the data-login_uri="/authorize" tag with the google button to post this response to the webserver after user has logged in
 		headerContentTtype := r.Header.Get("Content-Type")
 		if headerContentTtype != "application/x-www-form-urlencoded" {
-			w.WriteHeader(http.StatusUnsupportedMediaType)
+			http.Error(w, "Incompatible Content Type", http.StatusUnsupportedMediaType)
 			return
 		}
-
-		// START: Verify double submit cookie:
-		// 1. Check if g_csrf_token in body
-		err := r.ParseForm()
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Error parsing form values on auth request: %v", err), http.StatusBadRequest)
-			return
-		}
-		if err, ok := r.PostForm["g_csrf_token"]; !ok {
-			http.Error(w, fmt.Sprintf("No CSRF token in Body: %v", err), http.StatusBadRequest)
-			return
-		}
-		g_csrf_body := r.PostFormValue("g_csrf_token")
-
-		// 2. Check if in cookie:
-		g_csrf_cookie, err := r.Cookie("g_csrf_token")
-		if err != nil {
-			http.Error(w, "No CSRF token in Cookie.", http.StatusBadRequest)
-			return
-		}
-		fmt.Printf("Compare g_csrf_token in Cookie and Body:  %+v == %+v \n", g_csrf_cookie.Value, g_csrf_body)
-
-		// 3. Check if cookie and body value match
-		if g_csrf_cookie.Value != g_csrf_body {
-			http.Error(w, "Failed to verify double submit cookie.", http.StatusBadRequest)
-			return
-		}
-		// END: Verify double submit cookie:
+		checkDoubleSubmitCookie(w, r)
 
 		// Check if credential is in Post body
 		if err, ok := r.PostForm["credential"]; !ok {
@@ -141,24 +115,38 @@ func serveSignin(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		credential := r.PostFormValue("credential")
-		fmt.Printf("%+v\n", credential)
+		// fmt.Printf("%+v\n", credential)
 
-		// Check if credential is Valid
-		payload, err := idtoken.Validate(context.Background(), string(credential), googleClientId)
-		if err != nil {
-			panic(err)
-		}
-		fmt.Print(payload.Claims)
+		// // Check if credential is Valid
+		// payload, err := idtoken.Validate(context.Background(), string(credential), googleClientId)
+		// if err != nil {
+		// 	panic(err)
+		// }
+		// fmt.Print(payload.Claims)
 
-		// // TODO: Perform auth token verification
 		// // TODO: Check if user exists in database
 		// // TODO: if user exists --> get list of rooms for this user --> Return list to homepage
 		// // TODO: create user if not exists --> Respond on success --> go to homepage
 
+		// Set the jwt token as a cookie upon redirect for the client
+		cookie := http.Cookie{
+			Name:   "jwt-token",
+			Value:  "Bearer " + credential,
+			Path:   "/",
+			Secure: true,
+		}
+		http.SetCookie(w, &cookie)
 		// Redirect page after checks have been completed and user is logged in
 		http.Redirect(w, r, "/", http.StatusMovedPermanently)
 
 		return
+	}
+	// redirect /authorize page to /signin page
+	if r.URL.Path == "/authorize" && r.Method == "GET" {
+		fmt.Println("GET /authorize")
+		// Redirect page after checks have been completed and user is logged in
+		http.Redirect(w, r, "/signin", http.StatusMovedPermanently)
+
 	}
 	if r.URL.Path != "/signin" && r.URL.Path != "/authorize" {
 		http.Error(w, "Not found", http.StatusNotFound)
@@ -171,17 +159,48 @@ func serveSignin(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, htmlSigninFileName)
 }
 
+func checkDoubleSubmitCookie(w http.ResponseWriter, r *http.Request) {
+	// START: Verify double submit cookie:
+	// 1. Check if g_csrf_token in body
+	err := r.ParseForm()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error parsing form values on auth request: %v", err), http.StatusBadRequest)
+		return
+	}
+	if err, ok := r.PostForm["g_csrf_token"]; !ok {
+		http.Error(w, fmt.Sprintf("No CSRF token in Body: %v", err), http.StatusBadRequest)
+		return
+	}
+	g_csrf_body := r.PostFormValue("g_csrf_token")
+
+	// 2. Check if in cookie:
+	g_csrf_cookie, err := r.Cookie("g_csrf_token")
+	if err != nil {
+		http.Error(w, "No CSRF token in Cookie.", http.StatusBadRequest)
+		return
+	}
+	fmt.Printf("Compare g_csrf_token in Cookie and Body:  %+v == %+v \n", g_csrf_cookie.Value, g_csrf_body)
+
+	// 3. Check if cookie and body value match
+	if g_csrf_cookie.Value != g_csrf_body {
+		http.Error(w, "Failed to verify double submit cookie.", http.StatusBadRequest)
+		return
+	}
+	// END: Verify double submit cookie:
+}
+
 func main() {
 	router = mux.NewRouter()
-	router.HandleFunc("/", serveHome)
+	router.Handle("/", draw.AuthMiddleware(serveHome))
 	router.HandleFunc("/get-rooms", serveHome)
 	router.HandleFunc("/create-room", serveHome)
-	router.PathPrefix("/lib/").Handler(
-		http.StripPrefix("/lib/", http.FileServer(http.Dir("lib/"))),
-	)
 
 	router.HandleFunc("/signin", serveSignin)
 	router.HandleFunc("/authorize", serveSignin)
+
+	router.PathPrefix("/lib/").Handler(
+		http.StripPrefix("/lib/", http.FileServer(http.Dir("lib/"))),
+	)
 
 	// go func(rooms []*draw.Room) {
 	// 	rooms = append(rooms, <-draw.roomChan)

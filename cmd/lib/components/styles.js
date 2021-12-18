@@ -130,11 +130,11 @@ export const footerStyles = css`
 export const roomStyles = css `
     canvas {
         background-color: #fff;
-
+        box-shadow: 0px 0px 10px 1.5px #4040407a;
+        border-radius: 7px;
     }
     .canvas-parent {
         padding: 20px;
-
     }
 `;
 

@@ -45,6 +45,8 @@ func NewClient(h *Hub, conn *websocket.Conn) *Client {
 }
 
 func ServeWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
+
+	fmt.Printf("/room- cookies: %+v", r.Cookies())
 	// Create websocket connection
 	conn, err := wsUpgrader.Upgrade(w, r, nil)
 	if err != nil {
