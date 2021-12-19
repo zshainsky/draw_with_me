@@ -8,15 +8,16 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/zshainsky/draw-with-me"
+	"google.golang.org/api/idtoken"
 )
 
 var rooms []*draw.Room
+var users map[string]*draw.User
 var router *mux.Router
 
 type roomsJSON struct {
 	RoomsList []draw.RoomJSON
 }
-
 type AuthRequestBody struct {
 	Credential   string `json:credential`
 	G_csrf_token string `json:g_csrf_token`
@@ -34,67 +35,88 @@ const htmlSigninFileName = "../signin.html"
 func serveHome(w http.ResponseWriter, r *http.Request) {
 	log.Printf("serveHome: %v", r.URL)
 	// Access context values in handlers like this - Use Payload information to route request to the database for this specifci users
-	payload := r.Context().Value("jwt_payload")
-	fmt.Printf("\n serveHome: Contexts: %+v \n", payload)
-	// write list of rooms as a response to the api call in json format
-	// TODO: This is redundant...remove the fore loop and replace with roomsJSON{RoomsList: rooms}. Only need to pass in the reference to the globabl variable rooms
-	if r.URL.Path == "/get-rooms" {
-		fmt.Printf("/get-rooms cookies: %+v", r.Cookies())
-		roomIds := []draw.RoomJSON{}
-		response := roomsJSON{
-			RoomsList: roomIds,
+	payload := r.Context().Value(draw.CTXKey("jwt"))
+	// In order to serve these routes we must have a payload from our middleware, otherwise we should never get to this point
+	if payload != nil {
+		// Convert to type *idtoken.Payload
+		tokenPayload := payload.(*idtoken.Payload)
+
+		// Does this user exist
+		targetUser, userExists := users[tokenPayload.Subject]
+		if !userExists { // user does not exist
+			name := tokenPayload.Claims["name"].(string)
+			email := tokenPayload.Claims["email"].(string)
+			picture := tokenPayload.Claims["picture"].(string)
+			subject := tokenPayload.Subject
+
+			targetUser = draw.NewUser(subject, draw.AuthType("google"), name, email, picture)
+			users[subject] = targetUser
 		}
-		if len(rooms) > 0 {
-			// add all rooms to roomsIds list
-			for _, room := range rooms {
-				roomIds = append(roomIds, draw.RoomJSON{
-					Id: room.Id,
-				})
+		fmt.Printf("\ntargetUser: %v\n", targetUser)
+
+		// write list of rooms as a response to the api call in json format
+		// TODO: This is redundant...remove the fore loop and replace with roomsJSON{RoomsList: rooms}. Only need to pass in the reference to the globabl variable rooms
+		if r.URL.Path == "/get-rooms" {
+			// fmt.Printf("/get-rooms cookies: %+v", r.Cookies())
+			roomIds := []draw.RoomJSON{}
+			response := roomsJSON{
+				RoomsList: roomIds,
 			}
-			// use struct roomsJSON to format json
-			response.RoomsList = roomIds
+			if len(targetUser.RoomsList) > 0 {
+				// add all rooms to roomsIds list
+				for _, room := range targetUser.RoomsList {
+					roomIds = append(roomIds, draw.RoomJSON{
+						Id: room.Id,
+					})
+				}
+				// use struct roomsJSON to format json
+				response.RoomsList = roomIds
+			}
+			// write struct as json string
+			responsJSON, err := json.Marshal(response)
+			if err != nil {
+				fmt.Printf("get-rooms: could not create json string to return in responseText")
+			}
+
+			fmt.Printf("sending response to get-rooms: %v\n", string(responsJSON))
+			w.Write([]byte(responsJSON))
+
+			return
 		}
-		// write struct as json string
-		responsJSON, err := json.Marshal(response)
-		if err != nil {
-			fmt.Printf("get-rooms: could not create json string to return in responseText")
+		if r.URL.Path == "/create-room" {
+			// fmt.Printf("/create-room cookies: %+v", r.Cookies())
+
+			// create unique room and start hub
+			room := draw.NewRoom(router)
+
+			// add room to target user's room list and global rooms list
+			targetUser.AddRoom(room)
+			rooms = append(rooms, room)
+
+			fmt.Printf("created room in ServeHome function Handler id(room-%v)\n", room.Id)
+			room.StartRoom()
+
+			response := draw.RoomJSON{
+				Id: room.Id,
+			}
+			// write struct as json string
+			responseJSON, err := json.Marshal(response)
+			if err != nil {
+				fmt.Printf("get-rooms: could not create json string to return in responseText")
+			}
+
+			// write room id (url) back to the server
+			w.Write([]byte(responseJSON))
+			return
 		}
-
-		fmt.Printf("sending response to get-rooms: %v\n", string(responsJSON))
-		w.Write([]byte(responsJSON))
-
-		return
-	}
-	if r.URL.Path == "/create-room" {
-		fmt.Printf("/create-room cookies: %+v", r.Cookies())
-
-		// create unique room and start hub
-		room := draw.NewRoom(router)
-		rooms = append(rooms, room)
-
-		fmt.Printf("created room in ServeHome function Handler id(room-%v)\n", room.Id)
-		room.StartRoom()
-
-		response := draw.RoomJSON{
-			Id: room.Id,
+		if r.URL.Path != "/" {
+			http.Error(w, "Not found", http.StatusNotFound)
+			return
 		}
-		// write struct as json string
-		responseJSON, err := json.Marshal(response)
-		if err != nil {
-			fmt.Printf("get-rooms: could not create json string to return in responseText")
+		if r.Method != "GET" {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
 		}
-
-		// write room id (url) back to the server
-		w.Write([]byte(responseJSON))
-		return
-	}
-	if r.URL.Path != "/" {
-		http.Error(w, "Not found", http.StatusNotFound)
-		return
-	}
-	if r.Method != "GET" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
 	}
 
 	http.ServeFile(w, r, htmlFileName)
@@ -118,10 +140,6 @@ func serveSignin(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		credential := r.PostFormValue("credential")
-
-		// // TODO: Check if user exists in database
-		// // TODO: if user exists --> get list of rooms for this user --> Return list to homepage
-		// // TODO: create user if not exists --> Respond on success --> go to homepage
 
 		// Set the jwt token as a cookie upon redirect for the client
 		cookie := http.Cookie{
@@ -185,6 +203,7 @@ func checkDoubleSubmitCookie(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	users = make(map[string]*draw.User)
 	router = mux.NewRouter()
 	router.Handle("/", draw.AuthMiddleware(serveHome))
 	router.Handle("/get-rooms", draw.AuthMiddleware(serveHome))
