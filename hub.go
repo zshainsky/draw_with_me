@@ -12,16 +12,13 @@ type Hub struct {
 	broadcast      chan []byte
 	canvasInMemory []*PaintEvent
 }
-type paintEvent struct {
+type PaintEvent struct {
 	CurX   float64
 	CurY   float64
 	LastX  float64
 	LastY  float64
 	Color  string
 	UserId string
-}
-type PaintEvent struct {
-	paintEvent
 }
 type UserJSONEvents struct {
 	Name    string `json:name`
@@ -64,9 +61,8 @@ func (h *Hub) RegisterClient(c *Client) error {
 	// Add client to the list of active clients maintained by hub and send current canvas state
 	h.clients[c.id] = c
 	h.sendCanvasState(c)
-
 	// update list of active users on webpage
-	h.sendActiveUserList()
+	h.BroadcastPayload(h.sendActiveUserList())
 
 	return nil
 }
@@ -81,8 +77,9 @@ func (h *Hub) UnregisterClient(c *Client) error {
 		delete(h.clients, c.id)
 		close(c.send)
 	}
+
 	// update list of active users on webpage
-	h.sendActiveUserList()
+	h.BroadcastPayload(h.sendActiveUserList())
 	return nil
 }
 
@@ -101,19 +98,26 @@ func (h *Hub) BroadcastPayload(payload []byte) {
 // In memory store
 // Load payload data into a PaintEvent struct which is sent as proper JSON from the frontend and stored as a []byte
 func (h *Hub) writePaintEvent(payload []byte) {
-	var event = &PaintEvent{}
-	if err := json.Unmarshal(payload, event); err != nil {
+	key := "PaintEvent"
+	paintEventMap := make(map[string]*PaintEvent)
+	// paintEventMap[key] = &PaintEvent{}
+
+	if err := json.Unmarshal(payload, &paintEventMap); err != nil {
 		panic(err)
 	}
-	fmt.Printf("PaintEvent: %v\n", event)
+	fmt.Printf("PaintEventmap: %v\n", paintEventMap)
+	fmt.Printf("PaintEvent: %v\n", paintEventMap["PaintEvent"])
 
-	h.canvasInMemory = append(h.canvasInMemory, event)
+	h.canvasInMemory = append(h.canvasInMemory, paintEventMap[key])
 }
 
 // Send from in memory store
 // Send the canvas state (all paint events stored in h.canvasInMemory) to client send chan []byte
 func (h *Hub) sendCanvasState(c *Client) {
-	responsJSON, err := json.Marshal(h.canvasInMemory)
+	key := "CanvasState"
+	userJSONList := make(map[string][]*PaintEvent)
+	userJSONList[key] = h.canvasInMemory
+	responsJSON, err := json.Marshal(userJSONList)
 	if err != nil {
 		fmt.Printf("get-rooms: could not create json string to return in responseText")
 	}
@@ -121,24 +125,24 @@ func (h *Hub) sendCanvasState(c *Client) {
 	c.send <- responsJSON
 }
 
-func (h *Hub) sendActiveUserList() {
+func (h *Hub) sendActiveUserList() []byte {
 	fmt.Printf("Active User List: \n")
-	key := "AciveUsers"
+	key := "ActiveUsers"
 	userJSONList := make(map[string][]UserJSONEvents)
-	// resposneJSON, err := json.Marshal(h.clients)
+	// responseJSON, err := json.Marshal(h.clients)
 	for _, client := range h.clients {
 		userJSONList[key] = append(userJSONList[key], UserJSONEvents{
 			Name:    client.user.name,
 			Email:   client.user.email,
 			Picture: client.user.picture,
 		})
-		resposneJSON, err := json.Marshal(userJSONList)
-		if err != nil {
-			fmt.Printf("get-rooms: could not create json string to return in responseText")
-		}
-		fmt.Printf("response: %+v\n", string(resposneJSON))
-
 	}
+	responseJSON, err := json.Marshal(userJSONList)
+	if err != nil {
+		fmt.Printf("get-rooms: could not create json string to return in responseText")
+	}
+	fmt.Printf("response: %+v\n", string(responseJSON))
+	return responseJSON
 }
 
 func (h *Hub) GetRegistrationChan() chan *Client {
