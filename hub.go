@@ -6,7 +6,7 @@ import (
 )
 
 type Hub struct {
-	clients        map[string]*Client
+	clients        map[string]*Client // Clients are created when a web browser has loaded the room's page represent
 	register       chan *Client
 	unregister     chan *Client
 	broadcast      chan []byte
@@ -22,6 +22,11 @@ type paintEvent struct {
 }
 type PaintEvent struct {
 	paintEvent
+}
+type UserJSONEvents struct {
+	Name    string `json:name`
+	Email   string `json:email`
+	Picture string `json:picture`
 }
 
 func NewHub() *Hub {
@@ -52,18 +57,6 @@ func (h *Hub) Run() {
 	}
 }
 
-func (h *Hub) BroadcastPayload(payload []byte) {
-	for _, client := range h.clients {
-		select {
-		case client.send <- payload:
-			fmt.Printf("payload sent to client (%v): %v\n", client.GetId(), string(payload))
-		default:
-			fmt.Printf("default: %v\n", client.GetId())
-			h.UnregisterClient(client)
-		}
-	}
-}
-
 func (h *Hub) RegisterClient(c *Client) error {
 	if c == nil {
 		return fmt.Errorf("rigister Client when Client is nil %d\n", 0)
@@ -71,6 +64,9 @@ func (h *Hub) RegisterClient(c *Client) error {
 	// Add client to the list of active clients maintained by hub and send current canvas state
 	h.clients[c.id] = c
 	h.sendCanvasState(c)
+
+	// update list of active users on webpage
+	h.sendActiveUserList()
 
 	return nil
 }
@@ -85,7 +81,21 @@ func (h *Hub) UnregisterClient(c *Client) error {
 		delete(h.clients, c.id)
 		close(c.send)
 	}
+	// update list of active users on webpage
+	h.sendActiveUserList()
 	return nil
+}
+
+func (h *Hub) BroadcastPayload(payload []byte) {
+	for _, client := range h.clients {
+		select {
+		case client.send <- payload:
+			fmt.Printf("payload sent to client (%v): %v\n", client.GetId(), string(payload))
+		default:
+			fmt.Printf("default: %v\n", client.GetId())
+			h.UnregisterClient(client)
+		}
+	}
 }
 
 // In memory store
@@ -109,6 +119,26 @@ func (h *Hub) sendCanvasState(c *Client) {
 	}
 	fmt.Printf("\nsendCanvasState(): %v\n", string(responsJSON))
 	c.send <- responsJSON
+}
+
+func (h *Hub) sendActiveUserList() {
+	fmt.Printf("Active User List: \n")
+	key := "AciveUsers"
+	userJSONList := make(map[string][]UserJSONEvents)
+	// resposneJSON, err := json.Marshal(h.clients)
+	for _, client := range h.clients {
+		userJSONList[key] = append(userJSONList[key], UserJSONEvents{
+			Name:    client.user.name,
+			Email:   client.user.email,
+			Picture: client.user.picture,
+		})
+		resposneJSON, err := json.Marshal(userJSONList)
+		if err != nil {
+			fmt.Printf("get-rooms: could not create json string to return in responseText")
+		}
+		fmt.Printf("response: %+v\n", string(resposneJSON))
+
+	}
 }
 
 func (h *Hub) GetRegistrationChan() chan *Client {

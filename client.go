@@ -7,6 +7,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	uuid "github.com/nu7hatch/gouuid"
+	"google.golang.org/api/idtoken"
 )
 
 var wsUpgrader = websocket.Upgrader{
@@ -19,6 +20,7 @@ type Client struct {
 	conn *websocket.Conn
 	send chan []byte
 	hub  *Hub
+	user *User
 }
 
 type PaintData struct {
@@ -29,7 +31,7 @@ type PaintData struct {
 	color string  `json:color` //should be hex color (ex: #0000FF)
 }
 
-func NewClient(h *Hub, conn *websocket.Conn) *Client {
+func NewClient(h *Hub, user *User, conn *websocket.Conn) *Client {
 	id, err := uuid.NewV4()
 	if err != nil {
 		fmt.Printf("problem creating unique id for client, %v", err)
@@ -41,12 +43,38 @@ func NewClient(h *Hub, conn *websocket.Conn) *Client {
 		conn: conn,
 		send: make(chan []byte, 256),
 		hub:  h,
+		user: user,
 	}
 }
 
 func ServeWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
 
-	fmt.Printf("/room- cookies: %+v", r.Cookies())
+	var targetUser *User
+	payload := r.Context().Value(CTXKey("jwt"))
+
+	if payload != nil {
+		var isPayload bool
+		// cast payload to *idtoken.Payload
+		tokenPayload, isPayload := payload.(*idtoken.Payload)
+		// if cast failed
+		if !isPayload {
+			fmt.Errorf("could not cast payload to *idtoken.Payload:  %v", tokenPayload)
+			http.Error(w, "Not found", http.StatusNotFound)
+			return
+		}
+		var isUserExist bool
+		// check if user exists, if not, add user to in memory store
+		targetUser, isUserExist, _ = checkIfUserExists(tokenPayload)
+		if !isUserExist {
+			fmt.Printf("\ncreating user in the ServeRoom handler...\n")
+			targetUser, _ = addUserToInMemoryStore(tokenPayload)
+		}
+		fmt.Printf("\npayload check complete:\n")
+		fmt.Printf("%v \n\tuserName:  %v\n", targetUser.id, targetUser.email)
+	}
+
+	// fmt.Printf("\n/room- cookies: %+v\n", r.Cookies())
+	fmt.Printf("\n/Setting up Websocket for user: %v (%v)\n", targetUser.email, targetUser.id)
 	// Create websocket connection
 	conn, err := wsUpgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -55,7 +83,8 @@ func ServeWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create new Client and register with hub
-	client := NewClient(hub, conn)
+	client := NewClient(hub, targetUser, conn)
+	fmt.Printf("websocket new client: %v", client.user.email)
 	hub.register <- client
 
 	go client.sendToHub()
@@ -91,7 +120,7 @@ func (c *Client) writeToWS() {
 	// run infinate loop waiting (blocking) for messages from the hub (<-c.send)
 	for {
 		payload := <-c.send
-		fmt.Printf("client send chan: %v\n", string(payload))
+		// fmt.Printf("client send chan: %v\n", string(payload))
 		// write payload from hub to ws, if there is an error break out of loop and close connection
 		err := c.conn.WriteMessage(1, payload)
 		if err != nil {

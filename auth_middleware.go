@@ -26,7 +26,8 @@ const googleClientId = "406504108908-4djtjr6q3lil4rgrnbjproqi7ruc59vs.apps.googl
 
 func AuthMiddleware(handler http.HandlerFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Printf("\n Auth Handler: r.Header: %+v \n", r.Header)
+		// fmt.Printf("\n Auth Handler: r.Header: %+v \n", r.Header)
+		fmt.Printf("\n Auth Handler running from route: %v\n", r.URL)
 		if jwtCookie, err := r.Cookie("jwt-token"); jwtCookie != nil {
 			token := strings.Split(jwtCookie.Value, " ")
 			//index [0] should be the word "Bearer" and index [1] should be the token value
@@ -45,12 +46,7 @@ func AuthMiddleware(handler http.HandlerFunc) http.Handler {
 				}
 				//JWT is valid
 				fmt.Printf("\nValid JWT - Claims: %v\n", payload.Claims)
-				// Check if this is an authorization request with POST method from Auth provider. Create user if so
-				if r.URL.Path == "/authorize" && r.Method == "POST" {
-					//Does the user exist?
 
-					//If not, create
-				}
 				ctx := context.WithValue(r.Context(), jwtCTXKey, payload)
 				handler.ServeHTTP(w, r.WithContext(ctx))
 			}

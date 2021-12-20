@@ -36,7 +36,6 @@ func NewRoom(r *mux.Router) *Room {
 		HTMLFile: htmlFileName,
 		router:   r,
 	}
-
 }
 
 func (room *Room) StartRoom() {
@@ -45,18 +44,21 @@ func (room *Room) StartRoom() {
 	room.Hub = hub
 
 	go hub.Run()
+	room.CreateRoomRoutes()
 
-	room.router.Handle(fmt.Sprintf("/room-%v", room.Id), AuthMiddleware(ServeRoom))
-	room.router.HandleFunc(fmt.Sprintf("/room-%v/ws", room.Id), func(w http.ResponseWriter, r *http.Request) {
-		// create and serve client
-		ServeWS(room.Hub, w, r)
-	})
 }
 
-func ServeRoom(w http.ResponseWriter, r *http.Request) {
-	log.Println(r.URL)
+func (room *Room) CreateRoomRoutes() {
+	room.router.HandleFunc(fmt.Sprintf("/room-%v", room.Id), room.ServeRoom)
+	// Set up route to handle websocket
+	room.router.Handle(fmt.Sprintf("/room-%v/ws", room.Id), AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Printf("connecting to websocket...\n")
+		ServeWS(room.Hub, w, r)
+	}))
+}
 
-	fmt.Printf("/room cookies: %+v", r.Cookies())
+func (room *Room) ServeRoom(w http.ResponseWriter, r *http.Request) {
+	log.Println(r.URL)
 
 	if !strings.Contains(r.URL.Path, "/room") {
 		http.Error(w, "Not found", http.StatusNotFound)
