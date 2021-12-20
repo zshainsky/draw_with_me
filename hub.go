@@ -45,9 +45,6 @@ func (h *Hub) Run() {
 		case client := <-h.unregister:
 			h.UnregisterClient(client)
 		case payload := <-h.broadcast:
-			// go func(p []byte) {
-			// 	time.Sleep(time.Millisecond * 500)
-			// }(payload)
 			h.writePaintEvent(payload)
 			h.BroadcastPayload(payload)
 		}
