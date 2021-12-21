@@ -13,8 +13,23 @@
             margin:0px; 
             background-image: url('lib/img/background/paint_background.jpg');
         }
+        .title-bar {
+            display: flex;
+            flex-wrap: nowrap;
+            justify-content: center;
+            align-items: center;
+            margin: 34px;
+            height: 25%;
+        }
+        .logo {
+            height: 60px;
+        }
+        .title {
+            font-size: -webkit-xxx-large;
+            padding: 20px;
+        }
         .button_tray {
-            height: 100%;
+            height: 25%;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -24,6 +39,10 @@
         }
     </style>
     <body>
+        <div class="title-bar">
+            <img class="title logo" src="/lib/img/favicon/favicon-32x32.png"></img>
+            <div class="title">Draw with me</div>
+         </div>
         <div class="button_tray">
             <div id="g_id_onload" 
                 data-client_id="406504108908-4djtjr6q3lil4rgrnbjproqi7ruc59vs.apps.googleusercontent.com"
