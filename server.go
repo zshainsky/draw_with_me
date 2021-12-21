@@ -44,6 +44,8 @@ func (s *Server) createRoutes() {
 	s.router.Handle("/get-rooms", AuthMiddleware(s.serveRoomActions))
 	s.router.Handle("/create-room", AuthMiddleware(s.serveRoomActions))
 
+	s.router.Handle("/user-info", AuthMiddleware(s.serveUserInfo))
+
 	s.router.PathPrefix("/lib/").Handler(
 		http.StripPrefix("/lib/", http.FileServer(http.Dir("../lib/"))), //"../ is a relative path to where the router is created. In this case it is in ./cmd/main.go "
 	)
@@ -221,6 +223,69 @@ func checkDoubleSubmitCookie(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// END: Verify double submit cookie:
+}
+
+func (s *Server) serveUserInfo(w http.ResponseWriter, r *http.Request) {
+	fmt.Printf("serveUserInfo: %v", r.URL)
+
+	payload := r.Context().Value(CTXKey("jwt"))
+	targetUser, err := getCurrentUser(w, payload)
+	if err != nil {
+		return
+	}
+	// Access context values in handlers like this - Use Payload information to route request to the database for this specifci users
+
+	if r.URL.Path == "/user-info" && r.Method == "GET" {
+		userJSONEvent := UserJSONEvents{
+			Name:    targetUser.name,
+			Email:   targetUser.email,
+			Picture: targetUser.picture,
+		}
+		responseJSON, err := json.Marshal(userJSONEvent)
+		if err != nil {
+			fmt.Printf("get-rooms: could not create json string to return in responseText")
+		}
+		w.Header().Add("Content-Type", "application/json")
+		// write room id (url) back to the server
+		w.Write([]byte(responseJSON))
+		return
+	}
+	if r.URL.Path != "/user-info" {
+		http.Error(w, "Not found", http.StatusNotFound)
+		return
+	}
+	if r.Method != "GET" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+}
+func getCurrentUser(w http.ResponseWriter, payload interface{}) (*User, error) {
+
+	if payload != nil {
+		var isPayload bool
+		// cast payload to *idtoken.Payload
+		tokenPayload, isPayload := payload.(*idtoken.Payload)
+		// if cast failed
+		if !isPayload {
+			// fmt.Errorf("could not cast payload to *idtoken.Payload:  %v", tokenPayload)
+			http.Error(w, "Not found", http.StatusNotFound)
+			return nil, fmt.Errorf("could not cast payload to *idtoken.Payload:  %v", tokenPayload)
+		}
+		var isUserExist bool
+		// check if user exists, if not, add user to in memory store
+		targetUser, isUserExist, err := checkIfUserExists(tokenPayload)
+		if err != nil {
+			return nil, err
+		}
+		if !isUserExist {
+			fmt.Printf("\ncreating user in the ServeRoom handler...\n")
+			targetUser, _ = addUserToInMemoryStore(tokenPayload)
+		}
+		fmt.Printf("\npayload check complete:\n")
+		fmt.Printf("%v \n\tuserName:  %v\n", targetUser.id, targetUser.email)
+		return targetUser, nil
+	}
+	return nil, fmt.Errorf("payload is nil")
 }
 
 func checkIfUserExists(tokenPayload *idtoken.Payload) (*User, bool, error) {

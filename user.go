@@ -14,7 +14,11 @@ type User struct {
 	email     string
 	picture   string
 	RoomsList []*Room // List of rooms that the user has either created or visited
-
+}
+type UserJSONEvents struct {
+	Name    string `json:name`
+	Email   string `json:email`
+	Picture string `json:picture`
 }
 
 func NewUser(authId string, authType AuthType, name, email, picture string) *User {

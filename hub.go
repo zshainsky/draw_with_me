@@ -20,11 +20,6 @@ type PaintEvent struct {
 	Color  string
 	UserId string
 }
-type UserJSONEvents struct {
-	Name    string `json:name`
-	Email   string `json:email`
-	Picture string `json:picture`
-}
 
 func NewHub() *Hub {
 	return &Hub{
