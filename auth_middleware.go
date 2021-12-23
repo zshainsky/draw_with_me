@@ -30,6 +30,7 @@ func AuthMiddleware(handler http.HandlerFunc) http.Handler {
 		// fmt.Printf("\n Auth Handler: r.Header: %+v \n", r.Header)
 		fmt.Printf("\n Auth Handler running from route: %v\n", r.URL)
 		if jwtCookie, err := r.Cookie("jwt-token"); jwtCookie != nil {
+			fmt.Printf("\njwt-token found")
 			token := strings.Split(jwtCookie.Value, " ")
 			//index [0] should be the word "Bearer" and index [1] should be the token value
 			if len(token) != 2 {
