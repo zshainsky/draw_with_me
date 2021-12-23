@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
 	"google.golang.org/api/idtoken"
 )
@@ -46,11 +45,11 @@ func AuthMiddleware(handler http.HandlerFunc) http.Handler {
 					fmt.Println(err)
 					// TODO: Untested...potentially introduce this if the validator with credentials doesn't work to refresh token
 					// this might throw nil pointer exception...because payload may be nil
-					if time.Now().Unix() > payload.Expires {
-						// Refresh token
-						fmt.Printf("idtoken: token expired...refreshing token")
-						// return
-					}
+					// if err == []byte("idtoken: idtoken expired") {
+					// 	// Refresh token
+					// 	fmt.Printf("idtoken: token expired...refreshing token")
+					// 	// return
+					// }
 					http.Redirect(w, r, "/signin", http.StatusMovedPermanently)
 					return
 				}
