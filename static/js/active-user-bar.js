@@ -37,7 +37,6 @@
         
         @media only screen and (max-width: 899px) {
             .grid-wrapper {
-                display: grid;
                 grid-template-columns: repeat(1, 1fr);
                 grid-auto-rows: 200px;
                 font-size: 85%;
@@ -45,7 +44,6 @@
         } 
         @media only screen and (min-width: 900px) {
             .grid-wrapper {
-                display: grid;
                 grid-template-columns: repeat(2, 1fr);
                 grid-auto-rows: 250px;
             }
@@ -60,6 +58,9 @@
             color: #444;
             transition: 1s;
             margin: 4%;
+        }
+        .grid-wrapper.single-grid-element {
+            grid-template-columns: repeat(1, 1fr);
         }
         .grid-room {
             display: flex;  
@@ -98,7 +99,7 @@
         }
 
         .empty-grid {
-            grid-area: a;
+            grid-auto-rows: 1fr;
             background-color: #03463a;
         }
 
@@ -217,7 +218,7 @@
         }
         input {
             vertical-align: top;
-            float: right;
+            /* float: right; */
             display: inline-block;
         }
         label {
