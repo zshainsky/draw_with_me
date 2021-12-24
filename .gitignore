@@ -1,5 +1,5 @@
 .vscode/launch.json
 cmd/lib/node_modules/
 cmd/lib/out/
-/lib/out/
-/lib/node_modules/
+lib/node_modules/
+.DS_Store
