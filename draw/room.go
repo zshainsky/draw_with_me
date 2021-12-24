@@ -21,7 +21,7 @@ type RoomJSON struct {
 	Id string `json:id`
 }
 
-const htmlFileName = "../room.html"
+const htmlFileName = "static/html/room.html"
 
 func NewRoom(r *mux.Router) *Room {
 	id, err := uuid.NewV4()

@@ -6,19 +6,10 @@ import (
 	"os"
 
 	"github.com/gorilla/mux"
-	"github.com/zshainsky/draw-with-me"
+	"github.com/zshainsky/draw-with-me/draw"
 )
 
 var router *mux.Router
-
-type AuthRequestBody struct {
-	Credential   string `json:credential`
-	G_csrf_token string `json:g_csrf_token`
-}
-
-type APIResponse struct {
-	Code int //should be http.<response code>
-}
 
 func main() {
 
