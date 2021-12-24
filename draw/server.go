@@ -135,11 +135,11 @@ func (s *Server) serveRoomActions(w http.ResponseWriter, r *http.Request) {
 		response := roomsJSON{
 			RoomsList: roomIds,
 		}
-		if len(targetUser.RoomsList) > 0 {
+		if len(targetUser.RoomsMap) > 0 {
 			// add all rooms to roomsIds list
-			for _, room := range targetUser.RoomsList {
+			for id, _ := range targetUser.RoomsMap {
 				roomIds = append(roomIds, RoomJSON{
-					Id: room.Id,
+					Id: id,
 				})
 			}
 			// use struct roomsJSON to format json
