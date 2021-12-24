@@ -272,10 +272,6 @@
             }
             console.log(this.userList);
         }
-        // async performUpdate() {
-        //     await this.userList;
-        //     return super.performUpdate();
-        //  }
 
         render() {
             var userListJSON = JSON.parse(this.userList);
@@ -285,7 +281,7 @@
                 <div class="user">
                     ${userListJSON["ActiveUsers"].map( 
                             (item, index) => p`
-                            <img title="${item["Name"]} <${item["Email"]}" src="${item["Picture"]}">
+                            <img title="${item["Name"]} <${item["Email"]}>" src="${item["Picture"]}">
                             `
                     )}
                 </div>
