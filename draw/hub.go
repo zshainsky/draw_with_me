@@ -113,7 +113,7 @@ func (h *Hub) sendCanvasState(c *Client) {
 	if err != nil {
 		fmt.Printf("get-rooms: could not create json string to return in responseText")
 	}
-	fmt.Printf("\nsendCanvasState(): %v\n", string(responsJSON))
+	fmt.Printf("\nsendCanvasState()\n")
 	c.send <- responsJSON
 }
 

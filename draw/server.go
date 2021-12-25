@@ -20,8 +20,8 @@ type roomsJSON struct {
 	RoomsList []RoomJSON
 }
 
-const htmlHomeFileName = "../home.html"
-const htmlSigninFileName = "../signin.html"
+const htmlHomeFileName = "static/html/home.html"
+const htmlSigninFileName = "static/html/signin.html"
 
 func NewServer(r *mux.Router) *Server {
 	users = make(map[string]*User)
@@ -46,12 +46,8 @@ func (s *Server) createRoutes() {
 
 	s.router.Handle("/user-info", AuthMiddleware(s.serveUserInfo))
 
-	s.router.PathPrefix("/lib/").Handler(
-		http.StripPrefix("/lib/", http.FileServer(http.Dir("../lib/"))), //"../ is a relative path to where the router is created. In this case it is in ./cmd/main.go "
-	)
-
-	s.router.PathPrefix("/util/").Handler(
-		http.StripPrefix("/util/", http.FileServer(http.Dir("../util/"))), //"../ is a relative path to where the router is created. In this case it is in ./cmd/main.go "
+	s.router.PathPrefix("/static/").Handler(
+		http.StripPrefix("/static/", http.FileServer(http.Dir("static/"))), //http.Dir("") is a relative path from where the router is created. In this case it is created in main main.go in the top level dir"
 	)
 }
 
@@ -77,7 +73,7 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 }
 
 func serveSignin(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("serveSignin: %v", r.URL)
+	fmt.Printf("serveSignin: %v\n", r.URL)
 	// TODO: Break out /authorize end point into own handler  because may be called from outside of the signin flow
 	if r.URL.Path == "/authorize" && r.Method == "POST" {
 		// Authorization is using the data-login_uri="/authorize" tag with the google button to post this response to the webserver after user has logged in
@@ -139,11 +135,11 @@ func (s *Server) serveRoomActions(w http.ResponseWriter, r *http.Request) {
 		response := roomsJSON{
 			RoomsList: roomIds,
 		}
-		if len(targetUser.RoomsList) > 0 {
+		if len(targetUser.RoomsMap) > 0 {
 			// add all rooms to roomsIds list
-			for _, room := range targetUser.RoomsList {
+			for id, _ := range targetUser.RoomsMap {
 				roomIds = append(roomIds, RoomJSON{
-					Id: room.Id,
+					Id: id,
 				})
 			}
 			// use struct roomsJSON to format json

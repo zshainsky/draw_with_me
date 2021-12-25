@@ -47,7 +47,7 @@ func NewClient(h *Hub, user *User, conn *websocket.Conn) *Client {
 	}
 }
 
-func ServeWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
+func ServeWS(room *Room, w http.ResponseWriter, r *http.Request) {
 
 	var targetUser *User
 	payload := r.Context().Value(CTXKey("jwt"))
@@ -73,6 +73,9 @@ func ServeWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("%v \n\tuserName:  %v\n", targetUser.id, targetUser.email)
 	}
 
+	// If user visits a room created by a different user, add room to user's map of rooms
+	targetUser.AddRoom(room)
+
 	// fmt.Printf("\n/room- cookies: %+v\n", r.Cookies())
 	fmt.Printf("\n/Setting up Websocket for user: %v (%v)\n", targetUser.email, targetUser.id)
 	// Create websocket connection
@@ -83,9 +86,9 @@ func ServeWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create new Client and register with hub
-	client := NewClient(hub, targetUser, conn)
+	client := NewClient(room.Hub, targetUser, conn)
 	fmt.Printf("websocket new client: %v", client.user.email)
-	hub.register <- client
+	room.Hub.register <- client
 
 	go client.sendToHub()
 	go client.writeToWS()

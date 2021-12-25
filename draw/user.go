@@ -7,13 +7,13 @@ import (
 )
 
 type User struct {
-	id        string   // Unique to application
-	authId    string   // Map to 'sub' in JWT
-	authType  AuthType // Which authentication provider (i.e. Google, FB, other...)
-	name      string
-	email     string
-	picture   string
-	RoomsList []*Room // List of rooms that the user has either created or visited
+	id       string   // Unique to application
+	authId   string   // Map to 'sub' in JWT
+	authType AuthType // Which authentication provider (i.e. Google, FB, other...)
+	name     string
+	email    string
+	picture  string
+	RoomsMap map[string]*Room // List of rooms that the user has either created or visited
 }
 type UserJSONEvents struct {
 	Name    string `json:name`
@@ -28,19 +28,26 @@ func NewUser(authId string, authType AuthType, name, email, picture string) *Use
 		return nil
 	}
 	return &User{
-		id:        id.String(),
-		authId:    authId,
-		authType:  authType,
-		name:      name,
-		email:     email,
-		picture:   picture,
-		RoomsList: []*Room{},
+		id:       id.String(),
+		authId:   authId,
+		authType: authType,
+		name:     name,
+		email:    email,
+		picture:  picture,
+		RoomsMap: make(map[string]*Room),
 	}
 }
 
 func (u *User) AddRoom(room *Room) {
-	u.RoomsList = append(u.RoomsList, room)
+	fmt.Printf("user(%v) adding room: %v\n", u.email, room.Id)
+	// u.RoomsList = append(u.RoomsList, room)
+	// If room does not exist, add it
+	if _, ok := u.RoomsMap[room.Id]; !ok {
+		u.RoomsMap[room.Id] = room
+	}
+
 }
+
 func (u *User) String() string {
 	return fmt.Sprintf("User: \n\t%s\n\t%s\n\t%s\n\t%s\n\t%s\n\t%s", u.id, u.authId, u.authType, u.name, u.email, u.picture)
 }

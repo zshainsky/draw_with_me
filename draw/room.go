@@ -21,7 +21,7 @@ type RoomJSON struct {
 	Id string `json:id`
 }
 
-const htmlFileName = "../room.html"
+const htmlFileName = "static/html/room.html"
 
 func NewRoom(r *mux.Router) *Room {
 	id, err := uuid.NewV4()
@@ -53,7 +53,7 @@ func (room *Room) CreateRoomRoutes() {
 	// Set up route to handle websocket
 	room.router.Handle(fmt.Sprintf("/room-%v/ws", room.Id), AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("connecting to websocket...\n")
-		ServeWS(room.Hub, w, r)
+		ServeWS(room, w, r)
 	}))
 }
 
