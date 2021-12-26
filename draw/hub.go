@@ -97,8 +97,7 @@ func (h *Hub) writePaintEvent(payload []byte) {
 	if err := json.Unmarshal(payload, &paintEventMap); err != nil {
 		panic(err)
 	}
-	fmt.Printf("PaintEventmap: %v\n", paintEventMap)
-	fmt.Printf("PaintEvent: %v\n", paintEventMap["PaintEvent"])
+	fmt.Printf("PaintEvent: +%v\n", paintEventMap["PaintEvent"])
 
 	h.canvasInMemory = append(h.canvasInMemory, paintEventMap[key])
 }

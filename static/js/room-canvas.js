@@ -368,7 +368,8 @@
             ctx.closePath();
             ctx.stroke();
 
-            // // Return values to send to ws
+            // Return values to send to ws
+            // TODO: Add Room-Id to JSON..can we also add user id?
             return {"PaintEvent":{curX: this.curX, curY: this.curY, lastX: lastX, lastY: lastY, color: this.color}};
         }
         
