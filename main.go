@@ -15,6 +15,7 @@ func main() {
 
 	router = mux.NewRouter()
 	draw.NewServer(router)
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "3000" // Default port if not specified
