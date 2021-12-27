@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	uuid "github.com/nu7hatch/gouuid"
+	"github.com/zshainsky/draw-with-me/db"
 )
 
 type User struct {
@@ -27,6 +28,17 @@ func NewUser(authId string, authType AuthType, name, email, picture string) *Use
 		fmt.Printf("problem creating unique id for client, %v", err)
 		return nil
 	}
+
+	// DB: Add to Database: 'users'
+	db.InsertUser(db.UserTable{
+		Id:       id.String(),
+		AuthId:   authId,
+		AuthType: string(authType),
+		Name:     name,
+		Email:    email,
+		Picture:  picture,
+	})
+
 	return &User{
 		id:       id.String(),
 		authId:   authId,
@@ -34,7 +46,7 @@ func NewUser(authId string, authType AuthType, name, email, picture string) *Use
 		name:     name,
 		email:    email,
 		picture:  picture,
-		RoomsMap: make(map[string]*Room),
+		RoomsMap: make(map[string]*Room), // TODO: Get from DB
 	}
 }
 
@@ -44,6 +56,11 @@ func (u *User) AddRoom(room *Room) {
 	// If room does not exist, add it
 	if _, ok := u.RoomsMap[room.Id]; !ok {
 		u.RoomsMap[room.Id] = room
+		// DB: Add to Database: 'user_room(u.Id, room.Id)'
+		db.InsertUserRoom(db.UserRoomTable{
+			UserId: u.id,
+			RoomId: room.Id,
+		})
 	}
 
 }

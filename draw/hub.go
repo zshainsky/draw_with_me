@@ -6,6 +6,7 @@ import (
 )
 
 type Hub struct {
+	roomId         string
 	clients        map[string]*Client // Clients are created when a web browser has loaded the room's page represent
 	register       chan *Client
 	unregister     chan *Client
@@ -21,13 +22,14 @@ type PaintEvent struct {
 	UserId string
 }
 
-func NewHub() *Hub {
+func NewHub(roomId string) *Hub {
 	return &Hub{
+		roomId:         roomId,
 		clients:        make(map[string]*Client),
 		register:       make(chan *Client),
 		unregister:     make(chan *Client),
 		broadcast:      make(chan []byte),
-		canvasInMemory: []*PaintEvent{},
+		canvasInMemory: []*PaintEvent{}, // set from db
 	}
 }
 

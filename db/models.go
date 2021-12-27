@@ -1,15 +1,12 @@
 package db
 
-import "github.com/zshainsky/draw-with-me/draw"
-
 type UserTable struct {
-	Id       string        `json:id`       // Unique to application
-	AuthId   string        `json:authId`   // Map to 'sub' in JWT
-	AuthType draw.AuthType `json:authType` // Which authentication provider (i.e. Google, FB, other...)
-	Name     string        `json:name`
-	Email    string        `json:email`
-	Picture  string        `json:picture`
-	// RoomsMap map[string]*draw.Room `json:roomsMap` // List of rooms that the user has either created or visited
+	Id       string `json:id`       // Unique to application
+	AuthId   string `json:authId`   // Map to 'sub' in JWT
+	AuthType string `json:authType` // Which authentication provider (i.e. Google, FB, other...)
+	Name     string `json:name`
+	Email    string `json:email`
+	Picture  string `json:picture`
 }
 type UserRoomTable struct {
 	UserId string `json:userId` // FK to UserTable.Id

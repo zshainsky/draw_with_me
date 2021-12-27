@@ -350,7 +350,7 @@
                         ${this.rooms.map( 
                             (item, index) => p `
                                     
-                                <room-element class="grid-room clickable"  @click="${this.handleOpenRoom}" .id=${item["Id"]} .name=${item["Id"]} .isRoomSelected=${this.isRoomSelected} .selectedRoomId=${this.selectedRoomId}></room-element>
+                                <room-element class="grid-room clickable"  @click="${this.handleOpenRoom}" .id=${item["Id"]} .name=${item["Name"]} .isRoomSelected=${this.isRoomSelected} .selectedRoomId=${this.selectedRoomId}></room-element>
                                 `
                         )}
                     </div>

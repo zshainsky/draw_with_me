@@ -382,6 +382,7 @@ func DeleteUserRoom(userId, roomId string) int64 {
 
 /* END - CRUD Functions for UserRoomTable */
 
+// TODO: Get and Insert paint events
 /* START - CRUD Functions for UserRoomTable */
 func GetAllPaintEventsForRoom(roomId string) ([]PaintEventTable, error) {
 	return []PaintEventTable{}, nil
