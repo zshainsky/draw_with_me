@@ -27,7 +27,8 @@ CREATE TABLE IF NOT EXISTS user_room (
     FOREIGN KEY (user_id) REFERENCES users (id),
     FOREIGN KEY (room_id) REFERENCES rooms (id)
 );
-INSERT INTO user_room (user_id, room_id) VALUES ('62769698-ca64-472f-6da7-20becadb522a', '62769698-ca64-472f-6da7-20becadb522b') RETURNING (user_id, room_id);
+-- INSERT INTO user_room (user_id, room_id) VALUES ('62769698-ca64-472f-6da7-20becadb522a', '62769698-ca64-472f-6da7-20becadb522b') RETURNING (user_id, room_id);
+-- INSERT INTO user_room (user_id, room_id) VALUES ('62769698-ca64-472f-6da7-20becadb522c', '62769698-ca64-472f-6da7-20becadb522b') RETURNING (user_id, room_id);
 
 CREATE TABLE IF NOT EXISTS paint_event (
     user_id varchar(36) NOT NULL,
