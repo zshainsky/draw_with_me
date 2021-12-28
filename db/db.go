@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	_ "github.com/lib/pq" // driver import
 )
@@ -380,31 +381,196 @@ func DeleteUserRoom(userId, roomId string) int64 {
 	return rowsAffected
 }
 
-/* END - CRUD Functions for UserRoomTable */
+/* START - CRUD Functions for CanvasStateTable */
+func GetCanvasStateForRoom(roomId string) (CanvasStateTable, error) {
+	db := CreateConnection()
+	defer db.Close()
 
-// TODO: Get and Insert paint events
-/* START - CRUD Functions for UserRoomTable */
+	// create UserTable variable to load data into
+	var canvasState CanvasStateTable
+
+	sqlStatement := `SELECT * FROM canvas_state WHERE room_id=$1`
+
+	row := db.QueryRow(sqlStatement, roomId)
+	err := row.Scan(&canvasState.RoomId, &canvasState.CanvasJSON)
+
+	switch err {
+	case sql.ErrNoRows:
+		fmt.Println("No rows were returned!")
+		return canvasState, nil
+	case nil:
+		return canvasState, nil
+	default:
+		log.Fatalf("Unable to scan the row. %v", err)
+	}
+
+	// return empty user on error
+	return canvasState, err
+}
+
+func InsertCanvasStateForRoom(canvasState CanvasStateTable) string {
+	db := CreateConnection()
+	defer db.Close()
+
+	var id string
+	sqlStatement := "INSERT INTO canvas_state (room_id, canvas_json) VALUES ($1, $2) RETURNING room_id;"
+
+	row := db.QueryRow(sqlStatement, canvasState.RoomId, canvasState.CanvasJSON)
+	err := row.Scan(&id)
+	if err != nil {
+		log.Fatalf("could not insert room: %v", err)
+	}
+
+	return id
+}
+func UpdateCanvasStateForRoom(canvasState CanvasStateTable) int64 {
+	db := CreateConnection()
+	defer db.Close()
+
+	sqlStatement := "UPDATE canvas_state SET canvas_json=$2 WHERE room_id=$1;"
+
+	res, err := db.Exec(sqlStatement, canvasState.RoomId, canvasState.CanvasJSON)
+	if err != nil {
+		log.Fatalf("unable to update canvas state for roomId (%v): %v", canvasState.RoomId, err)
+	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		log.Fatalf("error while checking the affected rows. %v", err)
+	}
+
+	return rowsAffected
+}
+func DeleteCanvasStateForRoom(roomId string) int64 {
+	db := CreateConnection()
+	defer db.Close()
+
+	sqlStatement := "DELETE FROM canvas_state WHERE room_id=$1;"
+
+	res, err := db.Exec(sqlStatement, roomId)
+	if err != nil {
+		log.Fatalf("unable to delete room (%v): %v", roomId, err)
+	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		log.Fatalf("error while checking the affected rows. %v", err)
+	}
+
+	return rowsAffected
+}
+
+/* END - CRUD Functions for CanvasStateTable */
+
+/* START - CRUD Functions for PaintEventsTable */
 func GetAllPaintEventsForRoom(roomId string) ([]PaintEventTable, error) {
-	return []PaintEventTable{}, nil
+	db := CreateConnection()
+	defer db.Close()
+
+	var paintEventsList []PaintEventTable
+
+	sqlStatement := `SELECT * FROM paint_event WHERE room_id=$1`
+	rows, err := db.Query(sqlStatement, roomId)
+	if err != nil {
+		log.Fatalf("unable to execute query for all users. \n\tsql: (%v)\n\terror: %v", sqlStatement, err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var paintEvent PaintEventTable
+
+		err := rows.Scan(&paintEvent.EvtTime, &paintEvent.UserId, &paintEvent.RoomId, &paintEvent.LastX, &paintEvent.LastY, &paintEvent.CurX, &paintEvent.CurY, &paintEvent.Color)
+		if err != nil {
+			log.Fatalf("unable to scan single row for all users query: %v", err)
+		}
+		// fmt.Printf("timestamp: (%v) %v\n", paintEvent.EvtTime.Hour(), paintEvent.EvtTime)
+		paintEventsList = append(paintEventsList, paintEvent)
+	}
+
+	return paintEventsList, err
 }
 func GetAllPaintEventsForUser(userId string) ([]PaintEventTable, error) {
-	return []PaintEventTable{}, nil
+	db := CreateConnection()
+	defer db.Close()
+
+	var paintEventsList []PaintEventTable
+
+	sqlStatement := `SELECT * FROM paint_event WHERE user_id=$1`
+	rows, err := db.Query(sqlStatement, userId)
+	if err != nil {
+		log.Fatalf("unable to execute query for all users. \n\tsql: (%v)\n\terror: %v", sqlStatement, err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var paintEvent PaintEventTable
+
+		err := rows.Scan(&paintEvent.EvtTime, &paintEvent.UserId, &paintEvent.RoomId, &paintEvent.LastX, &paintEvent.LastY, &paintEvent.CurX, &paintEvent.CurY, &paintEvent.Color)
+		if err != nil {
+			log.Fatalf("unable to scan single row for all users query: %v", err)
+		}
+		paintEventsList = append(paintEventsList, paintEvent)
+	}
+
+	return paintEventsList, err
 }
 
 // string retuned will be the id of the user from the database
-func InsertPaintEvent(paintEvent PaintEventTable) string {
-	return ""
+func InsertPaintEvent(paintEvent PaintEventTable) (time int64, userId, roomId string) {
+	db := CreateConnection()
+	defer db.Close()
+
+	sqlStatement := "INSERT INTO paint_event (evt_time, user_id, room_id, lastX, lastY, curX, curY, color) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING evt_time, user_id, room_id;"
+
+	row := db.QueryRow(sqlStatement, &paintEvent.EvtTime, &paintEvent.UserId, &paintEvent.RoomId, &paintEvent.LastX, &paintEvent.LastY, &paintEvent.CurX, &paintEvent.CurY, &paintEvent.Color)
+	err := row.Scan(&time, &userId, &roomId)
+
+	if err != nil {
+		log.Fatalf("could not insert user: %v", err)
+	}
+
+	return time, userId, roomId
 }
-func InsertAllPaintEvents(paintEvent []PaintEventTable) string {
-	return ""
+
+// Reference: https://github.com/TrinhTrungDung/go-bulk-create/blob/master/main_test.go
+func InsertAllPaintEvents(paintEventsList []PaintEventTable) {
+	db := CreateConnection()
+	defer db.Close()
+
+	tx, err := db.Begin()
+	if err != nil {
+		log.Fatalf("could not begin db in InsertAllPaintEvents(): %v", err)
+	}
+
+	valueStrings := []string{}
+	valueArgs := []interface{}{}
+	for i, paintEvent := range paintEventsList {
+		position := i * 8
+		valueStrings = append(valueStrings, fmt.Sprintf("($%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d)", position+1, position+2, position+3, position+4, position+5, position+6, position+7, position+8))
+		valueArgs = append(valueArgs, paintEvent.EvtTime)
+		valueArgs = append(valueArgs, paintEvent.UserId)
+		valueArgs = append(valueArgs, paintEvent.RoomId)
+		valueArgs = append(valueArgs, paintEvent.CurX)
+		valueArgs = append(valueArgs, paintEvent.CurY)
+		valueArgs = append(valueArgs, paintEvent.LastX)
+		valueArgs = append(valueArgs, paintEvent.LastY)
+		valueArgs = append(valueArgs, paintEvent.Color)
+	}
+
+	sqlStatement := fmt.Sprintf("INSERT INTO paint_event (evt_time, user_id, room_id, lastX, lastY, curX, curY, color) VALUES %s;", strings.Join(valueStrings, ","))
+	_, err = tx.Exec(sqlStatement, valueArgs...)
+	if err != nil {
+		fmt.Println("rolling back")
+		tx.Rollback()
+		fmt.Println(err)
+	}
+	err = tx.Commit()
+	if err != nil {
+		fmt.Println("commit error")
+		fmt.Println(err)
+	}
 }
 
 // omitting UPDATE
 
-// return number of rows affected
-func DeletePaintEventsForUser(userId string) int64 {
-	return 0
-}
-func DeletePaintEventsForRoom(roomId string) int64 {
-	return 0
-}
+// omitting DELETE

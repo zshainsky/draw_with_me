@@ -2,19 +2,27 @@ package db
 
 import (
 	"database/sql"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"testing"
+	"time"
 )
 
 var userFlag bool
 var roomFlag bool
 var userRoomFlag bool
+var paintEventFlag bool
+var canvasStateFlag bool
 
+// > go test -userFlag=true -roomFlag=true -userRoomFlag=true -paintEventFlag=true -canvasStateFlag=true
 func init() {
 	flag.BoolVar(&userFlag, "userFlag", true, "use to skip user db tests")
 	flag.BoolVar(&roomFlag, "roomFlag", true, "use to skip room db tests")
 	flag.BoolVar(&userRoomFlag, "userRoomFlag", true, "use to skip user_room db tests")
+	flag.BoolVar(&paintEventFlag, "paintEventFlag", true, "use to skip paint_event db tests")
+	flag.BoolVar(&canvasStateFlag, "canvasStateFlag", true, "use to skip canvas_state db tests")
+
 }
 func TestUserDB(t *testing.T) {
 	t.Run("test DB connection (ping))", func(t *testing.T) {
@@ -190,7 +198,7 @@ func TestUserRoomDB(t *testing.T) {
 			t.Errorf("issue getting all rooms for user (%v): %v", userId, err)
 		}
 
-		want := getTableRowCountForUserRoom(t, "user", userId)
+		want := getRowCountInTableForUserOrRoom(t, "user_room", "user", userId)
 		if len(got) != want {
 			t.Errorf("Rooms for user (%v) did not match expected length. Got (%v), want (%v)", userId, len(got), want)
 		}
@@ -203,7 +211,7 @@ func TestUserRoomDB(t *testing.T) {
 			t.Errorf("issue getting all user for rooms (%v): %v", roomId, err)
 		}
 
-		want := getTableRowCountForUserRoom(t, "room", roomId)
+		want := getRowCountInTableForUserOrRoom(t, "user_room", "room", roomId)
 		if len(got) != want {
 			t.Errorf("Users for room (%v) did not match expected length: got (%v), want (%v)", roomId, len(got), want)
 		}
@@ -244,6 +252,212 @@ func TestUserRoomDB(t *testing.T) {
 	})
 }
 
+type PaintEvent struct {
+	EvtTime int64 // Unix() = epoch time
+	UserId  string
+	RoomId  string
+	CurX    int
+	CurY    int
+	LastX   int
+	LastY   int
+	Color   string
+}
+
+func TestCanvasStateDB(t *testing.T) {
+	t.Run("test get canvas state for room", func(t *testing.T) {
+		testRoomId := "62769698-ca64-472f-6da7-20becadb522f"
+		canvasState, err := GetCanvasStateForRoom(testRoomId)
+
+		if err != nil {
+			t.Errorf("issue getting canvas state for room (%v): %v", testRoomId, err)
+		}
+
+		if (canvasState == CanvasStateTable{}) {
+			t.Errorf("no canvas state was returned for room (%v)", testRoomId)
+			return
+		}
+		// epoch := time.Now().UnixNano()
+		// fmt.Printf("%T\n", canvasState.CanvasJSON)
+		// fmt.Printf("%d\n", epoch)
+
+		// Test unmarshal into draw.PaintEvent
+		paintEventMap := make(map[string][]*PaintEvent)
+
+		if err := json.Unmarshal([]byte(canvasState.CanvasJSON), &paintEventMap); err != nil {
+			t.Errorf("issue unmarshalling cavas_state data into db.PaintEvent struct: %v", err)
+		}
+		// fmt.Printf("PaintEvent: %+v\n", paintEventMap["CanvasState"][1])
+	})
+	t.Run("delete canvas state for room", func(t *testing.T) {
+		if canvasStateFlag {
+			t.Skip("skipping testing in short mode")
+		}
+
+		testRoomId := "62769698-ca64-472f-6da7-20becadb522b"
+
+		got := DeleteCanvasStateForRoom(testRoomId)
+		want := 1
+		if got != int64(want) {
+			t.Errorf("issue deleting canvas state for room (%v). got num rows affected (%v), want (%v)", testRoomId, got, want)
+		}
+	})
+	t.Run("test insert canvas state for room", func(t *testing.T) {
+		if canvasStateFlag {
+			t.Skip("skipping testing in short mode")
+		}
+		testRoomId := "62769698-ca64-472f-6da7-20becadb522b"
+
+		testCanvasState := CanvasStateTable{
+			RoomId: testRoomId,
+			CanvasJSON: `{
+							"CanvasState": [
+								{
+									"CurX": 181,
+									"CurY": 175,
+									"LastX": 180,
+									"LastY": 177,
+									"Color": "#F2500F",
+									"UserId": "62769698-ca64-472f-6da7-20becadb522a",
+									"RoomId": "62769698-ca64-472f-6da7-20becadb522b",
+									"EvtTime": 1640646814012146
+								}
+							]
+						}`,
+		}
+
+		gotRoomId := InsertCanvasStateForRoom(testCanvasState)
+
+		if gotRoomId != testRoomId {
+			t.Errorf("got: %v, want %v", gotRoomId, testRoomId)
+		}
+	})
+
+	t.Run("test update canvas state 'canvas_json' filed", func(t *testing.T) {
+		if canvasStateFlag {
+			t.Skip("skipping testing in short mode")
+		}
+
+		testRoomId := "62769698-ca64-472f-6da7-20becadb522b"
+
+		testCanvasState := CanvasStateTable{
+			RoomId: testRoomId,
+			CanvasJSON: `{
+							"CanvasState": [
+								{
+									"CurX": 200,
+									"CurY": 200,
+									"LastX": 400,
+									"LastY": 400,
+									"Color": "#F2500F",
+									"UserId": "62769698-ca64-472f-6da7-20becadb522a",
+									"RoomId": "62769698-ca64-472f-6da7-20becadb522b",
+									"EvtTime": 1640646814012146
+								}
+							]
+						}`,
+		}
+
+		gotRoomId := UpdateCanvasStateForRoom(testCanvasState)
+		want := getRowCountInTableForUserOrRoom(t, "canvas_state", "room", testRoomId)
+		if gotRoomId != int64(want) {
+			t.Errorf("Number of rows affected does not match. got %v, want %v", gotRoomId, want)
+		}
+	})
+}
+
+func TestPaintEventsDB(t *testing.T) {
+	t.Run("test get all paint events for room - matching row count", func(t *testing.T) {
+		testRoomId := "62769698-ca64-472f-6da7-20becadb522b"
+		paintEvents, err := GetAllPaintEventsForRoom(testRoomId)
+		if err != nil {
+			t.Errorf("issue with DB query to get all paint events: %v", err)
+		}
+
+		want := getRowCountInTableForUserOrRoom(t, "paint_event", "room", testRoomId)
+		if len(paintEvents) != want {
+			t.Errorf("issue getting all paint events for room (%v)", testRoomId)
+		}
+	})
+	t.Run("test get all paint events for users - matching row count", func(t *testing.T) {
+		testUserId := "62769698-ca64-472f-6da7-20becadb522a"
+		paintEvents, err := GetAllPaintEventsForUser(testUserId)
+		if err != nil {
+			t.Errorf("issue with DB query to get all paint events: %v", err)
+		}
+
+		want := getRowCountInTableForUserOrRoom(t, "paint_event", "user", testUserId)
+		if len(paintEvents) != want {
+			t.Errorf("issue getting all paint events for user (%v)", testUserId)
+		}
+	})
+	t.Run("test insert paint event", func(t *testing.T) {
+		if paintEventFlag {
+			t.Skip("skipping testing in short mode")
+		}
+		wantTime := time.Now().UTC().Unix() // INSERT using UTC
+		wantUserId := "62769698-ca64-472f-6da7-20becadb522a"
+		wantRoomId := "62769698-ca64-472f-6da7-20becadb522b"
+		testPaintEvent := PaintEventTable{
+			EvtTime: wantTime,
+			UserId:  wantUserId,
+			RoomId:  wantRoomId,
+			LastX:   10,
+			LastY:   10,
+			CurX:    20,
+			CurY:    20,
+			Color:   "#fff000",
+		}
+
+		gotTime, gotUserId, gotRoomId := InsertPaintEvent(testPaintEvent)
+		if gotTime != wantTime {
+			t.Errorf("Insert paint event did not return the correct timestamp: got (%+v) want (%+v)", gotTime, wantTime)
+		}
+		if gotUserId != wantUserId {
+			t.Errorf("Insert paint event did not return the correct userId: got (%v) want (%v)", gotUserId, wantUserId)
+
+		}
+		if gotRoomId != wantRoomId {
+			t.Errorf("Insert paint event did not return the correct roomId: got (%v) want (%v)", gotRoomId, gotUserId)
+		}
+	})
+	t.Run("test insert paint event", func(t *testing.T) {
+		if paintEventFlag {
+			t.Skip("skipping testing in short mode")
+		}
+
+		fmt.Println("testing all paint event insert")
+		numRowsToInsert := 10
+		var paintEventsList []PaintEventTable
+		userId := "62769698-ca64-472f-6da7-20becadb522a"
+		roomId := "62769698-ca64-472f-6da7-20becadb522b"
+
+		for i := 0; i < numRowsToInsert; i++ {
+			wantTime := time.Now().UTC().Unix() // INSERT using UTC
+			paintEventsList = append(paintEventsList, PaintEventTable{
+				EvtTime: wantTime,
+				UserId:  userId,
+				RoomId:  roomId,
+				LastX:   10 + i,
+				LastY:   10 + i,
+				CurX:    20 + i + 10,
+				CurY:    20 + i + 10,
+				Color:   "#fff000",
+			})
+		}
+
+		origRowCount := getTableRowCount(t, "paint_event")
+		InsertAllPaintEvents(paintEventsList)
+
+		wantNumRows := origRowCount + numRowsToInsert
+		gotNumRows := getTableRowCount(t, "paint_event")
+
+		if gotNumRows != wantNumRows {
+			t.Errorf("issue on insert all paint events. Got row count (%v). Want row count (%v)", gotNumRows, wantNumRows)
+
+		}
+	})
+}
+
 func assertEqualTotalRowCount(t testing.TB, table string, numQueryResults int) {
 	want := getTableRowCount(t, table)
 	if numQueryResults != want {
@@ -274,7 +488,7 @@ func getTableRowCount(t testing.TB, table string) int {
 	}
 	return numRows
 }
-func getTableRowCountForUserRoom(t testing.TB, idType, id string) int {
+func getRowCountInTableForUserOrRoom(t testing.TB, table, idType, id string) int {
 	db := CreateConnection()
 	defer db.Close()
 
@@ -286,11 +500,11 @@ func getTableRowCountForUserRoom(t testing.TB, idType, id string) int {
 	}
 
 	if idType == "room" {
-		sqlStatement = fmt.Sprintf(`SELECT count(*) as count FROM user_room WHERE room_id = '%v'`, id)
+		sqlStatement = fmt.Sprintf(`SELECT count(*) as count FROM %v WHERE room_id = '%v'`, table, id)
 	}
 
 	if idType == "user" {
-		sqlStatement = fmt.Sprintf(`SELECT count(*) as count FROM user_room WHERE user_id = '%v'`, id)
+		sqlStatement = fmt.Sprintf(`SELECT count(*) as count FROM %v WHERE user_id = '%v'`, table, id)
 	}
 
 	row := db.QueryRow(sqlStatement)

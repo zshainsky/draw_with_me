@@ -3,6 +3,8 @@ package draw
 import (
 	"encoding/json"
 	"fmt"
+
+	"github.com/zshainsky/draw-with-me/db"
 )
 
 type Hub struct {
@@ -14,23 +16,29 @@ type Hub struct {
 	canvasInMemory []*PaintEvent
 }
 type PaintEvent struct {
-	CurX   float64
-	CurY   float64
-	LastX  float64
-	LastY  float64
+	CurX   int
+	CurY   int
+	LastX  int
+	LastY  int
 	Color  string
 	UserId string
 }
 
 func NewHub(roomId string) *Hub {
-	return &Hub{
+
+	hub := &Hub{
 		roomId:         roomId,
 		clients:        make(map[string]*Client),
 		register:       make(chan *Client),
 		unregister:     make(chan *Client),
 		broadcast:      make(chan []byte),
-		canvasInMemory: []*PaintEvent{}, // set from db
+		canvasInMemory: []*PaintEvent{},
 	}
+
+	// DB: Create canvasInMemory from db
+	hub.initCanvasState()
+
+	return hub
 }
 
 func (h *Hub) Run() {
@@ -42,7 +50,7 @@ func (h *Hub) Run() {
 		case client := <-h.unregister:
 			h.UnregisterClient(client)
 		case payload := <-h.broadcast:
-			h.writePaintEvent(payload)
+			h.writePaintEventInMemory(payload)
 			h.BroadcastPayload(payload)
 		}
 	}
@@ -91,7 +99,7 @@ func (h *Hub) BroadcastPayload(payload []byte) {
 
 // In memory store
 // Load payload data into a PaintEvent struct which is sent as proper JSON from the frontend and stored as a []byte
-func (h *Hub) writePaintEvent(payload []byte) {
+func (h *Hub) writePaintEventInMemory(payload []byte) {
 	key := "PaintEvent"
 	paintEventMap := make(map[string]*PaintEvent)
 	// paintEventMap[key] = &PaintEvent{}
@@ -115,7 +123,27 @@ func (h *Hub) sendCanvasState(c *Client) {
 		fmt.Printf("get-rooms: could not create json string to return in responseText")
 	}
 	fmt.Printf("\nsendCanvasState()\n")
+	fmt.Printf("%s\n", responsJSON)
 	c.send <- responsJSON
+}
+
+// Load data from database into h.canvasInMemory.
+func (h *Hub) initCanvasState() {
+	dbPaintEventsList, err := db.GetAllPaintEventsForRoom(h.roomId)
+	if err != nil {
+		fmt.Errorf("issue getting all paint events for room (%v): %v", h.roomId, err)
+	}
+
+	for _, dbPaintEvent := range dbPaintEventsList {
+		h.canvasInMemory = append(h.canvasInMemory, &PaintEvent{
+			UserId: dbPaintEvent.UserId,
+			CurX:   dbPaintEvent.CurX,
+			CurY:   dbPaintEvent.CurY,
+			LastX:  dbPaintEvent.LastX,
+			LastY:  dbPaintEvent.LastY,
+			Color:  dbPaintEvent.Color,
+		})
+	}
 }
 
 func (h *Hub) sendActiveUserList() []byte {

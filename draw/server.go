@@ -10,6 +10,7 @@ import (
 	"google.golang.org/api/idtoken"
 )
 
+// TODO; Move this as part of the server struct?
 var users map[string]*User
 
 type Server struct {
@@ -314,6 +315,7 @@ func addUserToInMemoryStore(tokenPayload *idtoken.Payload) (*User, error) {
 	return nil, fmt.Errorf("could not add user. Payload is nil")
 }
 
+// Pass map by reference. This will edit the users map passed as a paramerter to this function as we are passing the memory address
 func (s *Server) initServerUsers(users map[string]*User) { // Build RoomMap
 	dbUserList, err := db.GetAllUsers()
 	if err != nil {
@@ -335,6 +337,7 @@ func (s *Server) initServerUsers(users map[string]*User) { // Build RoomMap
 	}
 }
 
+// Pass map by reference. This will edit the rooms map passed as a paramerter to this function as we are passing the memory address
 func (s *Server) initServerRoomsForUser(userId string, rooms map[string]*Room) {
 	fmt.Printf("userid: %v\n", userId)
 	dbRoomList, err := db.GetAllRoomsForUser(userId)
