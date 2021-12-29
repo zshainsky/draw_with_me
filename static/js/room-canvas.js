@@ -368,7 +368,8 @@
             ctx.closePath();
             ctx.stroke();
 
-            // // Return values to send to ws
+            // Return values to send to ws
+            // TODO: Add Room-Id to JSON..can we also add user id?
             return {"PaintEvent":{curX: this.curX, curY: this.curY, lastX: lastX, lastY: lastY, color: this.color}};
         }
         
@@ -379,9 +380,12 @@
 
         connectToWS(ctx) {
             if (window['WebSocket']) {
-                // wsStatus = this.renderRoot.querySelector("#canvas-details");
-                const conn = new WebSocket('wss://' + document.location.host + document.location.pathname + '/ws');
-                console.log('wss://' + document.location.host + document.location.pathname + '/ws');
+                var wsProtocol = 'ws://';
+                if (location.protocol == "https:") {
+                    wsProtocol = 'wss://';
+                }
+                const conn = new WebSocket(wsProtocol + document.location.host + document.location.pathname + '/ws');
+                console.log(wsProtocol + document.location.host + document.location.pathname + '/ws');
                 
                 conn.onopen = function () {
                     // conn.send("WS Open")

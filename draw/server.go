@@ -6,10 +6,11 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/zshainsky/draw-with-me/db"
 	"google.golang.org/api/idtoken"
 )
 
-var rooms []*Room
+// TODO; Move this as part of the server struct?
 var users map[string]*User
 
 type Server struct {
@@ -29,7 +30,9 @@ func NewServer(r *mux.Router) *Server {
 	server := &Server{
 		router: r,
 	}
-
+	// DB: read from db?
+	server.initServerUsers(users)
+	fmt.Printf("%v\n", len(users))
 	server.createRoutes()
 
 	return server
@@ -135,12 +138,19 @@ func (s *Server) serveRoomActions(w http.ResponseWriter, r *http.Request) {
 		response := roomsJSON{
 			RoomsList: roomIds,
 		}
+
 		if len(targetUser.RoomsMap) > 0 {
 			// add all rooms to roomsIds list
-			for id, _ := range targetUser.RoomsMap {
+			for id, room := range targetUser.RoomsMap {
 				roomIds = append(roomIds, RoomJSON{
-					Id: id,
+					Id:   id,
+					Name: room.Name,
 				})
+
+				// Start Room if not already running
+				if !room.isStarted {
+					room.StartRoom()
+				}
 			}
 			// use struct roomsJSON to format json
 			response.RoomsList = roomIds
@@ -165,10 +175,11 @@ func (s *Server) serveRoomActions(w http.ResponseWriter, r *http.Request) {
 
 		// add room to target user's room list and global rooms list
 		targetUser.AddRoom(room)
-		rooms = append(rooms, room)
 
 		// fmt.Printf("created room in ServeHome function Handler id(room-%v)\n", room.Id)
-		room.StartRoom()
+		if !room.isStarted {
+			room.StartRoom()
+		}
 
 		response := RoomJSON{
 			Id: room.Id,
@@ -216,7 +227,7 @@ func checkDoubleSubmitCookie(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) serveUserInfo(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("serveUserInfo: %v", r.URL)
+	fmt.Printf("serveUserInfo: %v\n", r.URL)
 
 	payload := r.Context().Value(CTXKey("jwt"))
 	targetUser, err := getCurrentUser(w, payload)
@@ -233,7 +244,7 @@ func (s *Server) serveUserInfo(w http.ResponseWriter, r *http.Request) {
 		}
 		responseJSON, err := json.Marshal(userJSONEvent)
 		if err != nil {
-			fmt.Printf("get-rooms: could not create json string to return in responseText")
+			fmt.Printf("get-rooms: could not create json string to return in responseText\n")
 		}
 		w.Header().Add("Content-Type", "application/json")
 		// write room id (url) back to the server
@@ -265,6 +276,7 @@ func getCurrentUser(w http.ResponseWriter, payload interface{}) (*User, error) {
 		var isUserExist bool
 		// check if user exists, if not, add user to in memory store
 		targetUser, isUserExist, err := checkIfUserExists(tokenPayload)
+		fmt.Printf("getCurrentUser() --> targetUser: %p\n", targetUser)
 		if err != nil {
 			return nil, err
 		}
@@ -301,4 +313,47 @@ func addUserToInMemoryStore(tokenPayload *idtoken.Payload) (*User, error) {
 		return targetUser, nil
 	}
 	return nil, fmt.Errorf("could not add user. Payload is nil")
+}
+
+// Pass map by reference. This will edit the users map passed as a paramerter to this function as we are passing the memory address
+func (s *Server) initServerUsers(users map[string]*User) { // Build RoomMap
+	dbUserList, err := db.GetAllUsers()
+	if err != nil {
+		panic(fmt.Sprintf("could not get all users from db: %v\n", err))
+	}
+	for _, dbUser := range dbUserList {
+		fmt.Printf("%v\n", dbUser.AuthId)
+		users[dbUser.AuthId] = &User{
+			id:       dbUser.Id,
+			authId:   dbUser.AuthId,
+			authType: AuthType(dbUser.AuthType),
+			name:     dbUser.Name,
+			email:    dbUser.Email,
+			picture:  dbUser.Picture,
+			RoomsMap: map[string]*Room{},
+		}
+
+		s.initServerRoomsForUser(dbUser.Id, users[dbUser.AuthId].RoomsMap)
+	}
+}
+
+// Pass map by reference. This will edit the rooms map passed as a paramerter to this function as we are passing the memory address
+func (s *Server) initServerRoomsForUser(userId string, rooms map[string]*Room) {
+	fmt.Printf("userid: %v\n", userId)
+	dbRoomList, err := db.GetAllRoomsForUser(userId)
+	if err != nil {
+		panic(fmt.Sprintf("could not get all rooms from db for user(%v): %v\n", userId, err))
+	}
+
+	for _, dbRoom := range dbRoomList {
+		fmt.Printf("roomid: %v\n", dbRoom.Id)
+
+		rooms[dbRoom.Id] = &Room{
+			Id:   dbRoom.Id,
+			Name: dbRoom.Name,
+			Hub:  nil,
+			// HTMLFile: htmlHomeFileName,
+			router: s.router,
+		}
+	}
 }
