@@ -66,7 +66,7 @@ func (room *Room) StartRoom() {
 }
 
 func (room *Room) CreateRoomRoutes() {
-	room.router.HandleFunc(fmt.Sprintf("/room-%v", room.Id), room.ServeRoom)
+	room.router.Handle(fmt.Sprintf("/room-%v", room.Id), AuthMiddleware(room.ServeRoom))
 	// Set up route to handle websocket
 	room.router.Handle(fmt.Sprintf("/room-%v/ws", room.Id), AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("connecting to websocket...\n")
