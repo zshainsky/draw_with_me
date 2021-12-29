@@ -102,6 +102,7 @@ func serveSignin(w http.ResponseWriter, r *http.Request) {
 			Secure: true,
 		}
 		http.SetCookie(w, &cookie)
+		// fmt.Printf(`r.Header.Get("Referer"): %v`, r.Header.Get("Referer"))
 		// // Redirect page after checks have been completed and user is logged in
 		http.Redirect(w, r, "/", http.StatusMovedPermanently)
 
@@ -182,7 +183,8 @@ func (s *Server) serveRoomActions(w http.ResponseWriter, r *http.Request) {
 		}
 
 		response := RoomJSON{
-			Id: room.Id,
+			Id:   room.Id,
+			Name: room.Name,
 		}
 		// write struct as json string
 		responseJSON, err := json.Marshal(response)
