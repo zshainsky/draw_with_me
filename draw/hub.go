@@ -285,25 +285,19 @@ func (h *Hub) startAutoSaveRoutine() {
 				return
 			case t := <-h.autoSave.ticker.C:
 				curEventCount := len(h.canvasInMemory)
-				if h.roomId == "fd5fe37c-e64f-4315-6a78-c546e179cb3a" {
-					fmt.Println("Auto save at", t)
-					fmt.Println("Total of canvas events:", curEventCount)
-				}
+
 				// Check if there have been any events drawn since last save, if yes, update database
 				if prevSaveCount < curEventCount {
-					if h.roomId == "fd5fe37c-e64f-4315-6a78-c546e179cb3a" {
-						fmt.Printf("autosave timer raached. Prev: %v, Cur %v\n", prevSaveCount, curEventCount)
-					}
+					fmt.Printf("(%v) autosave timer raached. Prev Canvas Events: %v, Cur Canvas Events: %v\n", t, prevSaveCount, curEventCount)
+
 					h.writeCanvasStateToDB()
 					prevSaveCount = curEventCount
 				}
 			case <-h.autoSave.event:
 				curEventCount := len(h.canvasInMemory)
 				if (h.autoSave.eventTriggerCount + prevSaveCount) < curEventCount {
-					if h.roomId == "fd5fe37c-e64f-4315-6a78-c546e179cb3a" {
-						fmt.Printf("autosave counter reached. Prev %d, Cur %v\n", (h.autoSave.eventTriggerCount + prevSaveCount), curEventCount)
-						fmt.Printf("New start  : %v", time.Now())
-					}
+					fmt.Printf("(%v) autosave counter reached. Prev Canvas Events: %d, Cur Canvas Events: %v\n", time.Now(), (h.autoSave.eventTriggerCount + prevSaveCount), curEventCount)
+
 					h.writeCanvasStateToDB()
 					// reset ticker to duration
 					h.autoSave.ticker.Reset(h.autoSave.duration)
