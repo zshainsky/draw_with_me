@@ -112,7 +112,8 @@ func (c *Client) sendToHub() {
 			log.Printf("could not read message from ws: %v", err)
 			break
 		}
-		fmt.Printf("websocket message: %s\n", msg)
+		// print message read from websocket
+		// fmt.Printf("websocket message: %s\n", msg)
 
 		//TODO: Add the RoomID to the message recived from the Websocket. This is likely set in lib/components/room-canvas.js
 		c.hub.broadcast <- msg

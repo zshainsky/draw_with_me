@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS canvas_state (
     canvas_json JSONB,
     FOREIGN KEY (room_id) REFERENCES rooms (id)
 );
-INSERT INTO canvas_state (room_id, canvas_json) VALUES ('62769698-ca64-472f-6da7-20becadb522f','{
+INSERT INTO canvas_state (room_id, canvas_json) VALUES ('fd5fe37c-e64f-4315-6a78-c546e179cb3a','{
     "CanvasState": [
         {
             "CurX": 181,
