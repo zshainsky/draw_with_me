@@ -6,19 +6,24 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/Pallinder/go-randomdata"
 	"github.com/gorilla/mux"
 	uuid "github.com/nu7hatch/gouuid"
+	"github.com/zshainsky/draw-with-me/db"
 )
 
 type Room struct {
-	Id       string
-	Hub      *Hub
-	HTMLFile string
-	router   *mux.Router
+	Id   string
+	Name string
+	Hub  *Hub
+	// HTMLFile string
+	router    *mux.Router
+	isStarted bool
 }
 
 type RoomJSON struct {
-	Id string `json:id`
+	Id   string `json:id`
+	Name string `json:name`
 }
 
 const htmlFileName = "static/html/room.html"
@@ -30,21 +35,33 @@ func NewRoom(r *mux.Router) *Room {
 		return nil
 	}
 
+	roomName := generateRoomName()
+
+	// DB: Add to Database: 'room'
+	db.InsertRoom(db.RoomTable{
+		Id:   id.String(),
+		Name: roomName,
+	})
+
 	return &Room{
-		Id:       id.String(),
-		Hub:      nil, // Hub is set when the room is started
-		HTMLFile: htmlFileName,
-		router:   r,
+		Id:   id.String(),
+		Name: roomName,
+		Hub:  nil, // Hub is set when the room is started
+		// HTMLFile: htmlFileName,
+		router:    r,
+		isStarted: false,
 	}
+
 }
 
 func (room *Room) StartRoom() {
 	// create, assign and run hub
-	hub := NewHub()
+	hub := NewHub(room.Id)
 	room.Hub = hub
 
 	go hub.Run()
 	room.CreateRoomRoutes()
+	room.isStarted = true
 
 }
 
@@ -69,4 +86,8 @@ func (room *Room) ServeRoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.ServeFile(w, r, htmlFileName)
+}
+
+func generateRoomName() string {
+	return fmt.Sprintf("%v %v %v", randomdata.Title(randomdata.RandomGender), randomdata.Country(randomdata.FullCountry), randomdata.SillyName())
 }

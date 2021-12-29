@@ -290,8 +290,8 @@
             console.log(this.selectedRoomId + ", " + this.id, this.selectedRoomId != "");
             return p`
                     <div class="clickable open-room-btn center">
-                        <div class="title">Open Room</div>
-                        <div class="title">${this.name}</div>
+                        <!-- <div class="title">Room Name:</div> -->
+                        <div class="name">${this.name}</div>
                         <div class="canvas-preview icon"></div> 
                     </div>
                     `;

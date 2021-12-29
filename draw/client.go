@@ -21,6 +21,7 @@ type Client struct {
 	send chan []byte
 	hub  *Hub
 	user *User
+	// room *Room // used to associate paint events
 }
 
 type PaintData struct {
@@ -44,6 +45,7 @@ func NewClient(h *Hub, user *User, conn *websocket.Conn) *Client {
 		send: make(chan []byte, 256),
 		hub:  h,
 		user: user,
+		// room: room,
 	}
 }
 
@@ -86,6 +88,7 @@ func ServeWS(room *Room, w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create new Client and register with hub
+	// client := NewClient(room.Hub, targetUser, room, conn)
 	client := NewClient(room.Hub, targetUser, conn)
 	fmt.Printf("websocket new client: %v", client.user.email)
 	room.Hub.register <- client
@@ -109,8 +112,10 @@ func (c *Client) sendToHub() {
 			log.Printf("could not read message from ws: %v", err)
 			break
 		}
-		fmt.Printf("websocket message: %s\n", msg)
+		// print message read from websocket
+		// fmt.Printf("websocket message: %s\n", msg)
 
+		//TODO: Add the RoomID to the message recived from the Websocket. This is likely set in lib/components/room-canvas.js
 		c.hub.broadcast <- msg
 	}
 }
