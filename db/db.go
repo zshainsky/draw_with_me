@@ -45,7 +45,7 @@ func CreateConnection() *sql.DB {
 	db, err := sql.Open("postgres", dbURL)
 
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	// check the connection
