@@ -1,4 +1,8 @@
-/* 
+/* Heroku cheatsheet: 
+ * > heroku pg:psql -a draw-with-me-io
+ * > heroku pg:psql -f ./schema.sql -a draw-with-me-io
+ * > draw-with-me-io::DATABASE=> select room_id, jsonb_array_length(canvas_json -> 'CanvasState') as len from canvas_state;
+ * 
  * This file is not used as part of the compiled application. 
  * This is intended to be used as a reference to the schema used in the application.
  */

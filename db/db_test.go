@@ -394,7 +394,7 @@ func TestPaintEventsDB(t *testing.T) {
 		if paintEventFlag {
 			t.Skip("skipping testing in short mode")
 		}
-		wantTime := time.Now().UTC().Unix() // INSERT using UTC
+		wantTime := time.Now().UTC().Unix() / int64(time.Millisecond) // INSERT using UTC
 		wantUserId := "62769698-ca64-472f-6da7-20becadb522a"
 		wantRoomId := "62769698-ca64-472f-6da7-20becadb522b"
 		testPaintEvent := PaintEventTable{
@@ -432,7 +432,7 @@ func TestPaintEventsDB(t *testing.T) {
 		roomId := "62769698-ca64-472f-6da7-20becadb522b"
 
 		for i := 0; i < numRowsToInsert; i++ {
-			wantTime := time.Now().UTC().Unix() // INSERT using UTC
+			wantTime := time.Now().UTC().Unix() / int64(time.Millisecond) // INSERT using UTC
 			paintEventsList = append(paintEventsList, PaintEventTable{
 				EvtTime: wantTime,
 				UserId:  userId,
