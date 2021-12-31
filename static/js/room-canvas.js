@@ -271,7 +271,8 @@
             paintJSON: {},
 
             userList: {type: String},
-
+            roomId: {type: String},
+            roomName: {type: String},
             wsConn: {type: Object},
         };
 
@@ -280,7 +281,6 @@
         connectedCallback() {
             super.connectedCallback();
             console.log("connectedCallback()");
-
         }
         constructor() {
             super();
@@ -299,6 +299,12 @@
 
             // Empty user list
             this.userList = JSON.stringify({ActiveUsers:[]});
+
+            // Set room ID
+            this.userAuthId = "";
+            this.roomId = "";
+            this.roomName = "";
+            
         }
 
         render() {
@@ -346,7 +352,7 @@
                 this.curX = e.pageX - canvas.offsetLeft;
                 this.curY = e.pageY - canvas.offsetTop;
                 // paint
-                var paintJSON = this.paint(ctx, this.curX, this.curY, this.lastX, this.lastY, this.color);            // format paint event
+                var paintJSON = this.paint(ctx, this.curX, this.curY, this.lastX, this.lastY, this.color, this.userAuthId, this.roomId);            // format paint event
                 
                 // this.renderRoot.querySelector('#canvas-details').innerText = "This Client's Canvas: " + JSON.stringify(paintJSON);
 
@@ -354,7 +360,7 @@
 
             }
         }
-        paint (ctx, pageX, pageY, lastX, lastY, color) {
+        paint (ctx, curX, curY, lastX, lastY, color, userId, roomId) {
             // Set line width
             ctx.lineWidth = 5;
             ctx.lineJoin = 'round';
@@ -364,13 +370,13 @@
             // Paint
             ctx.beginPath();
             ctx.moveTo(lastX, lastY);
-            ctx.lineTo(pageX, pageY);
+            ctx.lineTo(curX, curY);
             ctx.closePath();
             ctx.stroke();
 
             // Return values to send to ws
             // TODO: Add Room-Id to JSON..can we also add user id?
-            return {"PaintEvent":{curX: this.curX, curY: this.curY, lastX: lastX, lastY: lastY, color: this.color}};
+            return {"PaintEvent":{evtTime: Date.now(), userId: userId, roomId: roomId, curX: curX, curY: curY, lastX: lastX, lastY: lastY, color: color}};
         }
         
         handleChangedColor (e) {
@@ -451,6 +457,15 @@
                                     this.userList = JSON.stringify(jsonEvent);
                                     // this.renderRoot.querySelector('#active-users').innerText = "Active Users: " + JSON.stringify(jsonEvent);
 
+                                    break;
+                                case "CurrentUser":
+                                    console.log("CurrentUser");
+                                    this.userAuthId = jsonEvent[key]["AuthId"];
+                                    break;
+                                case "CurrentRoom":
+                                    console.log("CurrentRoom");
+                                    this.roomId = jsonEvent[key]["Id"];
+                                    this.roomName = jsonEvent[key]["Name"];
                                     break;
                                 default:
                                     console.log("Other event: "+ key);
