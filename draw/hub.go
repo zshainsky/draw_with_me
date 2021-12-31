@@ -27,14 +27,16 @@ type AutoSave struct {
 }
 
 type PaintEvent struct {
-	EvtTime int64 // Unix()/int64(1000) = epoch time in miliseconds
-	UserId  string
-	RoomId  string
-	CurX    int
-	CurY    int
-	LastX   int
-	LastY   int
-	Color   string
+	EvtTime      int64 // Unix()/int64(1000) = epoch time in miliseconds
+	UserId       string
+	RoomId       string
+	CurX         int
+	CurY         int
+	LastX        int
+	LastY        int
+	Color        string
+	CanvasWidth  int
+	CanvasHeight int
 }
 
 // JSON Keys
@@ -47,8 +49,9 @@ const (
 )
 
 func NewHub(roomInfo RoomJSON) *Hub {
-	autoSaveDuration := 10    // seconds
-	autoSaveEventLimit := 100 // num events
+	// Automatically save canvas state either every 30 seconds or 500 events, which ever comes first. If event threshold is triggered, restart the ticker on the specified interval (30sec)
+	autoSaveDuration := 30    // seconds
+	autoSaveEventLimit := 500 // num events
 
 	hub := &Hub{
 		roomMetaData:   roomInfo,
@@ -96,16 +99,19 @@ func (h *Hub) RegisterClient(c *Client) error {
 	if len(h.clients) == 0 {
 		h.startAutoSaveRoutine()
 	}
-	// Add client to the list of active clients maintained by hub and send current canvas state
-	h.clients[c.id] = c
-	h.sendCanvasState(c)
-	//TODO: Change this to send
-	// update list of active users on webpage
-	h.BroadcastPayload(h.getActiveUserListJSON())
+
 	// let the frontend know who the current clinet (c) is that just registered
 	h.sendCurrentUserInfo(c)
 	// let the frontend know the room ID and Name
 	h.sendCurrentRoomInfo(c)
+
+	// Add client to the list of active clients maintained by hub
+	h.clients[c.id] = c
+	// update list of active users on webpage
+	h.BroadcastPayload(h.getActiveUserListJSON())
+
+	// send current canvas state
+	h.sendCanvasState(c)
 
 	return nil
 }
@@ -151,7 +157,6 @@ func (h *Hub) BroadcastPayload(payload []byte) {
 // Load payload data into a PaintEvent struct which is sent as proper JSON from the frontend and stored as a []byte
 func (h *Hub) writePaintEventInMemory(payload []byte) {
 	paintEventMap := make(map[string]*PaintEvent)
-	// paintEventMap[key] = &PaintEvent{}
 
 	if err := json.Unmarshal(payload, &paintEventMap); err != nil {
 		panic(err)
@@ -188,8 +193,6 @@ func (h *Hub) writeCanvasStateToDB() {
 // Send from in memory store
 // Send the canvas state (all paint events stored in h.canvasInMemory) to client send chan []byte
 func (h *Hub) sendCanvasState(c *Client) {
-	// userJSONList := make(map[string][]*PaintEvent)
-	// userJSONList[canvasStateKey] = h.canvasInMemory
 
 	responseJSON, err := getCanvasStateAsJSON(h.canvasInMemory)
 	if err != nil {
@@ -335,6 +338,8 @@ func getCanvasStateAsJSON(paintEventsList []*PaintEvent) ([]byte, error) {
 }
 
 // Start goroutine to wait numSecondsBeforeSave amout of time (in seconds) before writing the current canvas state to the canvas_state table in the database
+// Automatically save canvas state either every x seconds or y events, which ever comes first. If event threshold is triggered, restart the ticker on the specified interval (x seconds)
+
 func (h *Hub) startAutoSaveRoutine() {
 	// get count of number of events in canvas memory
 	prevSaveCount := len(h.canvasInMemory)
