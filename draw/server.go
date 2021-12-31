@@ -243,6 +243,7 @@ func (s *Server) serveUserInfo(w http.ResponseWriter, r *http.Request) {
 			Name:    targetUser.name,
 			Email:   targetUser.email,
 			Picture: targetUser.picture,
+			AuthId:  targetUser.authId,
 		}
 		responseJSON, err := json.Marshal(userJSONEvent)
 		if err != nil {

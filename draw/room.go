@@ -56,7 +56,10 @@ func NewRoom(r *mux.Router) *Room {
 
 func (room *Room) StartRoom() {
 	// create, assign and run hub
-	hub := NewHub(room.Id)
+	hub := NewHub(RoomJSON{
+		Id:   room.Id,
+		Name: room.Name,
+	})
 	room.Hub = hub
 
 	go hub.Run()
@@ -85,6 +88,7 @@ func (room *Room) ServeRoom(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+
 	http.ServeFile(w, r, htmlFileName)
 }
 

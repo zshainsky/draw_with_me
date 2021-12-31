@@ -9,7 +9,7 @@ import (
 )
 
 type Hub struct {
-	roomId         string
+	roomMetaData   RoomJSON
 	clients        map[string]*Client // Clients are created when a web browser has loaded the room's page represent
 	register       chan *Client
 	unregister     chan *Client
@@ -27,7 +27,7 @@ type AutoSave struct {
 }
 
 type PaintEvent struct {
-	EvtTime int64 // Unix() = epoch time
+	EvtTime int64 // Unix()/int64(1000) = epoch time in miliseconds
 	UserId  string
 	RoomId  string
 	CurX    int
@@ -41,14 +41,17 @@ type PaintEvent struct {
 const (
 	paintEventKey  string = "PaintEvent"
 	canvasStateKey string = "CanvasState"
+	activeUsersKey string = "ActiveUsers"
+	currentUserKey string = "CurrentUser"
+	currentRoomKey string = "CurrentRoom"
 )
 
-func NewHub(roomId string) *Hub {
+func NewHub(roomInfo RoomJSON) *Hub {
 	autoSaveDuration := 10    // seconds
 	autoSaveEventLimit := 100 // num events
 
 	hub := &Hub{
-		roomId:         roomId,
+		roomMetaData:   roomInfo,
 		clients:        make(map[string]*Client),
 		register:       make(chan *Client),
 		unregister:     make(chan *Client),
@@ -96,8 +99,13 @@ func (h *Hub) RegisterClient(c *Client) error {
 	// Add client to the list of active clients maintained by hub and send current canvas state
 	h.clients[c.id] = c
 	h.sendCanvasState(c)
+	//TODO: Change this to send
 	// update list of active users on webpage
-	h.BroadcastPayload(h.sendActiveUserList())
+	h.BroadcastPayload(h.getActiveUserListJSON())
+	// let the frontend know who the current clinet (c) is that just registered
+	h.sendCurrentUserInfo(c)
+	// let the frontend know the room ID and Name
+	h.sendCurrentRoomInfo(c)
 
 	return nil
 }
@@ -122,7 +130,7 @@ func (h *Hub) UnregisterClient(c *Client) error {
 	h.writeCanvasStateToDB()
 
 	// update list of active users on webpage
-	h.BroadcastPayload(h.sendActiveUserList())
+	h.BroadcastPayload(h.getActiveUserListJSON())
 	return nil
 }
 
@@ -159,18 +167,18 @@ func (h *Hub) writeCanvasStateToDB() {
 	if err != nil {
 		fmt.Printf("get-rooms: could not create json string to return in responseText")
 	}
-	// fmt.Printf("\n")
-	// fmt.Printf("%s\n", responseJSON)
+	fmt.Printf("\n")
+	fmt.Printf("%s\n", responseJSON)
 	// Create a blank canvas state map
 	rowsAffected := db.UpdateCanvasStateForRoom(db.CanvasStateTable{
-		RoomId:     h.roomId,
+		RoomId:     h.roomMetaData.Id,
 		CanvasJSON: string(responseJSON),
 	})
 
 	// No rows affected due to no record for room_id in canvas_json
 	if rowsAffected == 0 {
 		db.InsertCanvasStateForRoom(db.CanvasStateTable{
-			RoomId:     h.roomId,
+			RoomId:     h.roomMetaData.Id,
 			CanvasJSON: string(responseJSON),
 		})
 	}
@@ -193,12 +201,21 @@ func (h *Hub) sendCanvasState(c *Client) {
 	c.send <- responseJSON
 }
 
+// Inform frontend of the current user's information. This is used by the room-canvas element to track which user made which paint events.
+func (h *Hub) sendCurrentUserInfo(c *Client) {
+	c.send <- h.getCurrentUserJSON(c)
+}
+
+func (h *Hub) sendCurrentRoomInfo(c *Client) {
+	c.send <- h.getCurrentRoomIdJSON()
+}
+
 // Initialize canvas state in memory. This function queries the canvas_state table and loads the canvas_json value into hub.canvasInMemory.
 // If there is no record for this room in the canvas_state table, then insert a blank state into canvas_json.
 func (h *Hub) initCanvasFromCanvasStateTable() {
-	dbCanvasState, err := db.GetCanvasStateForRoom(h.roomId)
+	dbCanvasState, err := db.GetCanvasStateForRoom(h.roomMetaData.Id)
 	if err != nil {
-		fmt.Printf("error initializing canvas for room (%v): %v\n", h.roomId, err)
+		fmt.Printf("error initializing canvas for room (%v): %v\n", h.roomMetaData.Id, err)
 		return
 	}
 
@@ -214,7 +231,7 @@ func (h *Hub) initCanvasFromCanvasStateTable() {
 		// fmt.Printf("%s\n", responseJSON)
 
 		db.InsertCanvasStateForRoom(db.CanvasStateTable{
-			RoomId:     h.roomId,
+			RoomId:     h.roomMetaData.Id,
 			CanvasJSON: string(responseJSON),
 		})
 		return
@@ -235,9 +252,9 @@ func (h *Hub) initCanvasFromCanvasStateTable() {
 // Load data from database into h.canvasInMemory.
 // TODO_DB: Going to update this to read from the canvas_state table ... This will load a single JSON value which can be looped through to create []PaintEvent{}. Saving this will be very easy as well by adding JSONB to database.
 func (h *Hub) initCanvasFromPaintEventsTable() {
-	dbPaintEventsList, err := db.GetAllPaintEventsForRoom(h.roomId)
+	dbPaintEventsList, err := db.GetAllPaintEventsForRoom(h.roomMetaData.Id)
 	if err != nil {
-		fmt.Errorf("issue getting all paint events for room (%v): %v", h.roomId, err)
+		fmt.Errorf("issue getting all paint events for room (%v): %v", h.roomMetaData.Id, err)
 	}
 
 	for _, dbPaintEvent := range dbPaintEventsList {
@@ -252,16 +269,16 @@ func (h *Hub) initCanvasFromPaintEventsTable() {
 	}
 }
 
-func (h *Hub) sendActiveUserList() []byte {
+func (h *Hub) getActiveUserListJSON() []byte {
 	fmt.Printf("Active User List: \n")
-	key := "ActiveUsers"
 	userJSONList := make(map[string][]UserJSONEvents)
 	// responseJSON, err := json.Marshal(h.clients)
 	for _, client := range h.clients {
-		userJSONList[key] = append(userJSONList[key], UserJSONEvents{
+		userJSONList[activeUsersKey] = append(userJSONList[activeUsersKey], UserJSONEvents{
 			Name:    client.user.name,
 			Email:   client.user.email,
 			Picture: client.user.picture,
+			AuthId:  client.user.authId,
 		})
 	}
 	responseJSON, err := json.Marshal(userJSONList)
@@ -270,6 +287,51 @@ func (h *Hub) sendActiveUserList() []byte {
 	}
 	fmt.Printf("response: %+v\n", string(responseJSON))
 	return responseJSON
+}
+
+func (h *Hub) getCurrentUserJSON(c *Client) []byte {
+	userJSON := make(map[string]UserJSONEvents)
+	currentUser := UserJSONEvents{
+		Name:    c.user.name,
+		Email:   c.user.email,
+		Picture: c.user.picture,
+		AuthId:  c.user.authId,
+	}
+	userJSON[currentUserKey] = currentUser
+	responseJSON, err := json.Marshal(userJSON)
+	if err != nil {
+		fmt.Printf("get-rooms: could not create json string to return in responseText")
+	}
+	fmt.Printf("response: %+v\n", string(responseJSON))
+	return responseJSON
+}
+
+func (h *Hub) getCurrentRoomIdJSON() []byte {
+	roomJSON := make(map[string]RoomJSON)
+	roomJSON[currentRoomKey] = h.roomMetaData
+	responseJSON, err := json.Marshal(roomJSON)
+	if err != nil {
+		fmt.Printf("get-rooms: could not create json string to return in responseText")
+	}
+	fmt.Printf("response: %+v\n", string(responseJSON))
+	return responseJSON
+
+}
+
+func getCanvasStateAsJSON(paintEventsList []*PaintEvent) ([]byte, error) {
+	canvasStateMap := make(map[string][]*PaintEvent)
+	canvasStateMap[canvasStateKey] = paintEventsList
+
+	responseJSON, err := json.Marshal(canvasStateMap)
+	if err != nil {
+		fmt.Printf("issue Marshaling canvasStateMap\n")
+		return nil, err
+	}
+	fmt.Printf("getCanvasStateAsJSON(): \n")
+	// fmt.Printf("%s\n", responseJSON)
+
+	return responseJSON, nil
+
 }
 
 // Start goroutine to wait numSecondsBeforeSave amout of time (in seconds) before writing the current canvas state to the canvas_state table in the database
@@ -328,22 +390,6 @@ func (h *Hub) GetClient(c *Client) (*Client, error) {
 
 func (h *Hub) GetNumClients() int {
 	return len(h.clients)
-}
-
-func getCanvasStateAsJSON(paintEventsList []*PaintEvent) ([]byte, error) {
-	canvasStateMap := make(map[string][]*PaintEvent)
-	canvasStateMap[canvasStateKey] = paintEventsList
-
-	responseJSON, err := json.Marshal(canvasStateMap)
-	if err != nil {
-		fmt.Printf("issue Marshaling canvasStateMap\n")
-		return nil, err
-	}
-	fmt.Printf("getCanvasStateAsJSON(): \n")
-	// fmt.Printf("%s\n", responseJSON)
-
-	return responseJSON, nil
-
 }
 
 func PrintHub() string {
