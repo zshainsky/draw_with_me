@@ -322,7 +322,7 @@
                 <div class="clickable open-room-btn center">
                     <div class="name">${this.name}</div>
                     <div id="${this.id}" class="canvas-preview icon">
-                        <canvas id="canvas" @mouseenter="${this.handleMouseEnter}" @mouseleave="${this.handleMouseLeave}"></canvas>
+                        <canvas id="canvas" @mouseenter="${this.handleMouseEnter}" @mouseleave="${this.handleMouseLeave}" @touchstart="${this.handleMouseEnter}" @touchend="${this.handleMouseLeave}"></canvas>
                     </div> 
                 </div>
                 `;
@@ -418,7 +418,7 @@
         }
 
         handleMouseEnter(e){
-            console.log("enter");
+            console.log("enter", e);
             // reset couters and start animating
             this.resetCounters();
             this.startAnimating();
@@ -430,6 +430,18 @@
             // make sure canvasStae exists
             if (!this.canvasState) { return; }
             this.paintAllEvents(this.canvasEl, this.canvasState["CanvasState"]);
+
+            if(e.type == "touchend"){
+                _dispatchOpenRoom(this.id);
+            }
+        }
+        _dispatchOpenRoom(id) {
+            const options = {
+                // detail: { roomId: id },
+                bubbles: true,
+                composed: true
+            };
+            this.dispatchEvent(new CustomEvent('open-room', options));
         }
     }
     customElements.define('room-element', RoomElement);

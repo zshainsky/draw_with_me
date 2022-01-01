@@ -350,9 +350,8 @@
                 </div>
                     <div class="grid-wrapper ${o(this.classes)}">
                         ${this.rooms.map( 
-                            (item, index) => p `
-                                    
-                                <room-element class="grid-room clickable"  @click="${this.handleOpenRoom}" .id=${item["Id"]} .name=${item["Name"]} .canvasState=${item["CanvasState"]} .isRoomSelected=${this.isRoomSelected} .selectedRoomId=${this.selectedRoomId}></room-element>
+                            (item, index) => p `       
+                                <room-element class="grid-room clickable"  @click="${this.handleOpenRoom}" @open-room="${this.handleOpenRoom}" .id=${item["Id"]} .name=${item["Name"]} .canvasState=${item["CanvasState"]} .isRoomSelected=${this.isRoomSelected} .selectedRoomId=${this.selectedRoomId}></room-element>
                                 `
                         )}
                     </div>
