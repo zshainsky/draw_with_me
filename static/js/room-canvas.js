@@ -329,7 +329,7 @@
                 <active-user-bar .userList="${this.userList}"></active-user-bar>
                 
                 <tool-palette .initColor="${this.color}"></tool-palette>
-                <canvas id="canvas" width="${this.width}" height="${this.height}" @mousedown="${this.handleMouseDown}" @mouseup="${this.handleMouseUp}" @mousemove="${this.handleMouseMove}" ></canvas>
+                <canvas id="canvas" width="${this.width}" height="${this.height}" @mousedown="${this.handleMouseDown}" @mouseup="${this.handleMouseUp}" @mousemove="${this.handleMouseMove}"  @touchstart="${this.handleMouseDown}" @touchend="${this.handleMouseUp}" @touchmove="${this.handleMouseMove}"></canvas>
             </div>  
         `
         }
@@ -355,23 +355,38 @@
         handleMouseDown(e) {
             this.isMouseDown = true;
             var canvas = e.target;
+            var firstTouch;
+
+            if (e.type == "touchstart") { 
+                // disable page scroll
+                e.preventDefault();
+                // only handle first touch
+                firstTouch = e.touches[0]; 
+            }
             
             // set mouse position variables
-            this.curX = e.pageX - canvas.offsetLeft;
-            this.curY = e.pageY - canvas.offsetTop;
+            this.curX = (e.pageX || parseInt(firstTouch.pageX)) - canvas.offsetLeft;
+            this.curY = (e.pageY || parseInt(firstTouch.pageY)) - canvas.offsetTop;
             this.lastX = this.curX;
             this.lastY = this.curY;
         }
 
         handleMouseMove(e) {
             var canvas = e.target;
+            var firstTouch;
+
+            if (e.type == "touchmove") { 
+                // disable page scroll
+                e.preventDefault();
+                firstTouch = e.touches[0]; 
+            }
 
             if (this.isMouseDown) {
                 // set mouse position variables
                 this.lastX = this.curX;
                 this.lastY = this.curY;
-                this.curX = e.pageX - canvas.offsetLeft;
-                this.curY = e.pageY - canvas.offsetTop;
+                this.curX = (e.pageX || parseInt(firstTouch.pageX)) - canvas.offsetLeft;
+                this.curY = (e.pageY || parseInt(firstTouch.pageY)) - canvas.offsetTop;
 
                 // paint
                 // var paintJSON = this.paint(this.canvasEl, this.curX, this.curY, this.lastX, this.lastY, this.color, this.userAuthId, this.roomId, this.canvasEl.width, this.canvasEl.height);            // format paint event
