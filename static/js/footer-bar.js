@@ -64,6 +64,7 @@
         }
         .grid-room {
             display: flex;  
+            flex-direction: column;
             background-color: #444;
             color: #fff;
             opacity: .85;
@@ -149,6 +150,7 @@
         /* transform: scale(1.025);
         opacity: 1; */
     }
+    
 `;
 
     r$2`
@@ -202,7 +204,7 @@
         background-color: #fff;
         box-shadow: 0px 0px 10px 1.5px #4040407a;
         border-radius: 7px;
-        /* width:100%; */ /* Used to fit canvas on the screen */ 
+        width: 100%; /* Used to fit canvas on the screen */ 
     }
     .canvas-parent {
         padding: 20px;

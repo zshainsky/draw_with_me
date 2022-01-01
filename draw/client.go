@@ -24,14 +24,6 @@ type Client struct {
 	// room *Room // used to associate paint events
 }
 
-type PaintData struct {
-	lastX float64 `json:lastX`
-	lastY float64 `json:lastY`
-	curX  float64 `json:curX`
-	curY  float64 `json:curY`
-	color string  `json:color` //should be hex color (ex: #0000FF)
-}
-
 func NewClient(h *Hub, user *User, conn *websocket.Conn) *Client {
 	id, err := uuid.NewV4()
 	if err != nil {

@@ -20,6 +20,7 @@ type UserJSONEvents struct {
 	Name    string `json:name`
 	Email   string `json:email`
 	Picture string `json:picture`
+	AuthId  string `json:authId`
 }
 
 func NewUser(authId string, authType AuthType, name, email, picture string) *User {

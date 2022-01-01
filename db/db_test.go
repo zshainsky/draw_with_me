@@ -349,9 +349,11 @@ func TestCanvasStateDB(t *testing.T) {
 									"LastX": 400,
 									"LastY": 400,
 									"Color": "#F2500F",
-									"UserId": "62769698-ca64-472f-6da7-20becadb522a",
+									"UserId": "113062537928538714747",
 									"RoomId": "62769698-ca64-472f-6da7-20becadb522b",
-									"EvtTime": 1640646814012146
+									"EvtTime": 1640646814012,
+									"CanvasWidth": 1500,
+									"CanvasHeight": 750
 								}
 							]
 						}`,
@@ -394,7 +396,7 @@ func TestPaintEventsDB(t *testing.T) {
 		if paintEventFlag {
 			t.Skip("skipping testing in short mode")
 		}
-		wantTime := time.Now().UTC().Unix() // INSERT using UTC
+		wantTime := time.Now().UTC().Unix() / int64(time.Millisecond) // INSERT using UTC
 		wantUserId := "62769698-ca64-472f-6da7-20becadb522a"
 		wantRoomId := "62769698-ca64-472f-6da7-20becadb522b"
 		testPaintEvent := PaintEventTable{
@@ -432,7 +434,7 @@ func TestPaintEventsDB(t *testing.T) {
 		roomId := "62769698-ca64-472f-6da7-20becadb522b"
 
 		for i := 0; i < numRowsToInsert; i++ {
-			wantTime := time.Now().UTC().Unix() // INSERT using UTC
+			wantTime := time.Now().UTC().Unix() / int64(time.Millisecond) // INSERT using UTC
 			paintEventsList = append(paintEventsList, PaintEventTable{
 				EvtTime: wantTime,
 				UserId:  userId,
