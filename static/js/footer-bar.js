@@ -275,7 +275,7 @@
             return p`
             <div class="footer-bar"> 
                 <div class="author clickable"><a target='_blank' href='https://www.linkedin.com/in/zack-shainsky/'>Zack Shainsky - Updated 2021/2022</a></div>
-                <div class="github clickable"><a target='_blank' href='https://github.com/zshainsky/lit_test'>Github Project</a></div>
+                <div class="github clickable"><a target='_blank' href='https://github.com/zshainsky/draw_with_me'>Github Project</a></div>
                 <div class="attribution clickable"><a target='_blank' href='https://www.freepik.com/vectors/background'>attribution</a></div>
             </div>`
         }
