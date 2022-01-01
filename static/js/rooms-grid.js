@@ -77,6 +77,7 @@
         }
         .grid-room {
             display: flex;  
+            flex-direction: column;
             background-color: #444;
             color: #fff;
             opacity: .85;
@@ -162,6 +163,7 @@
         /* transform: scale(1.025);
         opacity: 1; */
     }
+    
 `;
 
     r$2`
@@ -306,9 +308,9 @@
             console.log(response.status, contentType);
             if (contentType == "application/json") {
                 const jsonResponse = await response.json();
+                console.log(jsonResponse);  
                 this.rooms = jsonResponse["RoomsList"];
                 this.loading = false;
-                console.log("rooms list: " + this.rooms);
             } else {
                 this.rooms = [];
                 console.log("/get-rooms response code: " + response.status);
@@ -350,7 +352,7 @@
                         ${this.rooms.map( 
                             (item, index) => p `
                                     
-                                <room-element class="grid-room clickable"  @click="${this.handleOpenRoom}" .id=${item["Id"]} .name=${item["Name"]} .isRoomSelected=${this.isRoomSelected} .selectedRoomId=${this.selectedRoomId}></room-element>
+                                <room-element class="grid-room clickable"  @click="${this.handleOpenRoom}" .id=${item["Id"]} .name=${item["Name"]} .canvasState=${item["CanvasState"]} .isRoomSelected=${this.isRoomSelected} .selectedRoomId=${this.selectedRoomId}></room-element>
                                 `
                         )}
                     </div>
@@ -370,6 +372,7 @@
         `
         }
         
+        // preview functionality ... depricated ...
         handleClick(e){
             // Get all items in grid
             var gridItems = e.currentTarget.parentElement.getElementsByClassName("click");

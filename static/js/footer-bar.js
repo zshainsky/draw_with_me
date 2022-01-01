@@ -64,6 +64,7 @@
         }
         .grid-room {
             display: flex;  
+            flex-direction: column;
             background-color: #444;
             color: #fff;
             opacity: .85;
@@ -149,6 +150,7 @@
         /* transform: scale(1.025);
         opacity: 1; */
     }
+    
 `;
 
     r$2`

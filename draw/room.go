@@ -22,8 +22,9 @@ type Room struct {
 }
 
 type RoomJSON struct {
-	Id   string `json:id`
-	Name string `json:name`
+	Id          string                   `json:id`
+	Name        string                   `json:name`
+	CanvasState map[string][]*PaintEvent `json:",omitempty"`
 }
 
 const htmlFileName = "static/html/room.html"
@@ -57,8 +58,9 @@ func NewRoom(r *mux.Router) *Room {
 func (room *Room) StartRoom() {
 	// create, assign and run hub
 	hub := NewHub(RoomJSON{
-		Id:   room.Id,
-		Name: room.Name,
+		Id:          room.Id,
+		Name:        room.Name,
+		CanvasState: make(map[string][]*PaintEvent),
 	})
 	room.Hub = hub
 
@@ -75,6 +77,17 @@ func (room *Room) CreateRoomRoutes() {
 		fmt.Printf("connecting to websocket...\n")
 		ServeWS(room, w, r)
 	}))
+}
+
+func (room *Room) GetCurrentRoomCanvasStateJSON() []byte {
+	responseJSON, err := room.Hub.GetCanvasStateAsJSON(room.Hub.canvasInMemory)
+	if err != nil {
+		fmt.Printf("get-rooms: could not create json string to return in responseText: %v\n", err)
+		return nil
+	}
+
+	fmt.Printf("GetCurrentRoomCanvasStateJSON()\n")
+	return responseJSON
 }
 
 func (room *Room) ServeRoom(w http.ResponseWriter, r *http.Request) {

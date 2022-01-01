@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/zshainsky/draw-with-me/db"
@@ -45,6 +46,7 @@ func (s *Server) createRoutes() {
 	s.router.HandleFunc("/authorize", serveSignin)
 
 	s.router.Handle("/get-rooms", AuthMiddleware(s.serveRoomActions))
+	s.router.Handle("/get-room/{id}", AuthMiddleware(s.serveRoomActions))
 	s.router.Handle("/create-room", AuthMiddleware(s.serveRoomActions))
 
 	s.router.Handle("/user-info", AuthMiddleware(s.serveUserInfo))
@@ -132,42 +134,7 @@ func (s *Server) serveRoomActions(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-	// write list of rooms as a response to the api call in json format
-	if r.URL.Path == "/get-rooms" {
-		// fmt.Printf("/get-rooms cookies: %+v", r.Cookies())
-		roomIds := []RoomJSON{}
-		response := roomsJSON{
-			RoomsList: roomIds,
-		}
-
-		if len(targetUser.RoomsMap) > 0 {
-			// add all rooms to roomsIds list
-			for id, room := range targetUser.RoomsMap {
-				roomIds = append(roomIds, RoomJSON{
-					Id:   id,
-					Name: room.Name,
-				})
-
-				// Start Room if not already running
-				if !room.isStarted {
-					room.StartRoom()
-				}
-			}
-			// use struct roomsJSON to format json
-			response.RoomsList = roomIds
-		}
-		// write struct as json string
-		responsJSON, err := json.Marshal(response)
-		if err != nil {
-			fmt.Printf("get-rooms: could not create json string to return in responseText")
-		}
-
-		fmt.Printf("sending response to get-rooms: %v\n", string(responsJSON))
-		w.Header().Add("Content-Type", "application/json")
-		w.Write([]byte(responsJSON))
-
-		return
-	}
+	fmt.Println(r.URL.Path)
 	if r.URL.Path == "/create-room" {
 		// fmt.Printf("/create-room cookies: %+v", r.Cookies())
 
@@ -183,8 +150,9 @@ func (s *Server) serveRoomActions(w http.ResponseWriter, r *http.Request) {
 		}
 
 		response := RoomJSON{
-			Id:   room.Id,
-			Name: room.Name,
+			Id:          room.Id,
+			Name:        room.Name,
+			CanvasState: make(map[string][]*PaintEvent),
 		}
 		// write struct as json string
 		responseJSON, err := json.Marshal(response)
@@ -196,6 +164,75 @@ func (s *Server) serveRoomActions(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(responseJSON))
 		return
 	}
+
+	// write list of rooms as a response to the api call in json format
+	if r.URL.Path == "/get-rooms" {
+		// fmt.Printf("/get-rooms cookies: %+v", r.Cookies())
+		roomIds := []RoomJSON{}
+		response := roomsJSON{
+			RoomsList: roomIds,
+		}
+
+		if len(targetUser.RoomsMap) > 0 {
+			// add all rooms to roomsIds list
+			for id, room := range targetUser.RoomsMap {
+				// Start Room if not already running
+				if !room.isStarted {
+					room.StartRoom()
+				}
+
+				roomIds = append(roomIds, RoomJSON{
+					Id:          id,
+					Name:        room.Name,
+					CanvasState: room.Hub.GetMapOfCanvasInMemory(),
+				})
+			}
+			// use struct roomsJSON to format json
+			response.RoomsList = roomIds
+		}
+		// write struct as json string
+		responsJSON, err := json.Marshal(response)
+		if err != nil {
+			fmt.Printf("get-rooms: could not create json string to return in responseText")
+		}
+
+		fmt.Printf("sending response to get-rooms:\n")
+		w.Header().Add("Content-Type", "application/json")
+		w.Write([]byte(responsJSON))
+		return
+	}
+	if strings.Contains(r.URL.Path, "/get-room") {
+		vars := mux.Vars(r)
+		key := vars["id"]
+		fmt.Printf("get-room: %v, %v", r.URL.Path, key)
+		urlPath := strings.Split(r.URL.Path, "/")
+
+		// check if url path is formatted with 3 "/"
+		if len(urlPath) != 3 {
+			http.Error(w, "incorrect formeted request to get-rooms", http.StatusBadRequest)
+			return
+		}
+
+		requestedRoomId := urlPath[2]
+		room, ok := targetUser.RoomsMap[requestedRoomId]
+		if !ok {
+			http.Error(w, "room requested not found", http.StatusBadRequest)
+			return
+		}
+		if room == nil {
+			http.Error(w, "room has not started yet", http.StatusBadRequest)
+			return
+		}
+		responsJSON, err := room.Hub.GetCanvasStateAsJSON(room.Hub.canvasInMemory)
+		if err != nil {
+			http.Error(w, "canvas json not found", http.StatusBadRequest)
+			return
+		}
+		w.Header().Add("Content-Type", "application/json")
+		w.Write(responsJSON)
+		return
+	}
+
 }
 
 func checkDoubleSubmitCookie(w http.ResponseWriter, r *http.Request) {

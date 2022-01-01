@@ -168,12 +168,12 @@ func (h *Hub) writePaintEventInMemory(payload []byte) {
 }
 
 func (h *Hub) writeCanvasStateToDB() {
-	responseJSON, err := getCanvasStateAsJSON(h.canvasInMemory)
+	responseJSON, err := h.GetCanvasStateAsJSON(h.canvasInMemory)
 	if err != nil {
 		fmt.Printf("get-rooms: could not create json string to return in responseText")
 	}
-	fmt.Printf("\n")
-	fmt.Printf("%s\n", responseJSON)
+	fmt.Printf("writeCanvasStateToDB()\n")
+	// fmt.Printf("%s\n", responseJSON)
 	// Create a blank canvas state map
 	rowsAffected := db.UpdateCanvasStateForRoom(db.CanvasStateTable{
 		RoomId:     h.roomMetaData.Id,
@@ -194,7 +194,7 @@ func (h *Hub) writeCanvasStateToDB() {
 // Send the canvas state (all paint events stored in h.canvasInMemory) to client send chan []byte
 func (h *Hub) sendCanvasState(c *Client) {
 
-	responseJSON, err := getCanvasStateAsJSON(h.canvasInMemory)
+	responseJSON, err := h.GetCanvasStateAsJSON(h.canvasInMemory)
 	if err != nil {
 		fmt.Printf("get-rooms: could not create json string to return in responseText: %v\n", err)
 	}
@@ -226,7 +226,7 @@ func (h *Hub) initCanvasFromCanvasStateTable() {
 	if dbCanvasState == (db.CanvasStateTable{}) {
 		fmt.Printf("No record for db canvas state so insert a blank record...\n")
 
-		responseJSON, err := getCanvasStateAsJSON([]*PaintEvent{})
+		responseJSON, err := h.GetCanvasStateAsJSON([]*PaintEvent{})
 		if err != nil {
 			fmt.Printf("get-rooms: could not create json string to return in responseText")
 		}
@@ -321,7 +321,7 @@ func (h *Hub) getCurrentRoomIdJSON() []byte {
 
 }
 
-func getCanvasStateAsJSON(paintEventsList []*PaintEvent) ([]byte, error) {
+func (h *Hub) GetCanvasStateAsJSON(paintEventsList []*PaintEvent) ([]byte, error) {
 	canvasStateMap := make(map[string][]*PaintEvent)
 	canvasStateMap[canvasStateKey] = paintEventsList
 
@@ -396,7 +396,14 @@ func (h *Hub) GetClient(c *Client) (*Client, error) {
 func (h *Hub) GetNumClients() int {
 	return len(h.clients)
 }
-
+func (h *Hub) GetMapOfCanvasInMemory() map[string][]*PaintEvent {
+	canvasStateMap := make(map[string][]*PaintEvent)
+	canvasStateMap[canvasStateKey] = h.canvasInMemory
+	return canvasStateMap
+}
+func (h *Hub) GetCanvasInMemory() []*PaintEvent {
+	return h.canvasInMemory
+}
 func PrintHub() string {
 	return "Hub"
 }
