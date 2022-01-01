@@ -64,6 +64,7 @@
         }
         .grid-room {
             display: flex;  
+            flex-direction: column;
             background-color: #444;
             color: #fff;
             opacity: .85;
@@ -149,6 +150,7 @@
         /* transform: scale(1.025);
         opacity: 1; */
     }
+    
 `;
 
     r$2`
@@ -202,7 +204,7 @@
         background-color: #fff;
         box-shadow: 0px 0px 10px 1.5px #4040407a;
         border-radius: 7px;
-        /* width:100%; */ /* Used to fit canvas on the screen */ 
+        width: 100%; /* Used to fit canvas on the screen */ 
     }
     .canvas-parent {
         padding: 20px;
@@ -268,9 +270,13 @@
             lastX: {type: Number},
             lastY: {type: Number},
             color: {type: String},
-            paintJSON: {},
+            
+            canvasState: {},
+            canvasEl: {},
 
             userList: {type: String},
+            roomId: {type: String},
+            roomName: {type: String},
 
             wsConn: {type: Object},
         };
@@ -279,8 +285,16 @@
 
         connectedCallback() {
             super.connectedCallback();
-            console.log("connectedCallback()");
-
+            //console.log("connectedCallback()");
+            //console.log(this.shadowRoot.querySelector("#canvas"));
+        }
+        async firstUpdated() {
+            // Give the browser a chance to paint
+            await new Promise((r) => setTimeout(r, 0));
+            this.canvasEl = this.shadowRoot.querySelector("#canvas");
+            //console.log("Selected Canvas: ", this.canvasEl);
+            window.addEventListener("resize", evt => this.handleResize(evt) );
+            this.handleResize();
         }
         constructor() {
             super();
@@ -289,7 +303,7 @@
             this.height = 700;
 
             this.wsConn = this.connectToWS();
-            console.log(this.wsConn);
+            //console.log(this.wsConn);
 
             this.curX=0;
             this.curY=0;
@@ -299,12 +313,19 @@
 
             // Empty user list
             this.userList = JSON.stringify({ActiveUsers:[]});
+            // Empty CanvasState JSON object
+            this.initCanvasState();
+
+            // Set room ID
+            this.userAuthId = "";
+            this.roomId = "";
+            this.roomName = "";
+            
         }
 
         render() {
             return p`
             <div id="canvas-parent" class="canvas-parent" @changed-color="${this.handleChangedColor}">
-                <!-- <p id="canvas-details">Meta data:</p> -->
                 <active-user-bar .userList="${this.userList}"></active-user-bar>
                 
                 <tool-palette .initColor="${this.color}"></tool-palette>
@@ -312,87 +333,123 @@
             </div>  
         `
         }
+        handleResize(e){
+            var rect = this.canvasEl.getBoundingClientRect();
+            
+            this.canvasEl.width = rect.width;
+            this.canvasEl.height = rect.height;
+
+            this.paintAllEvents(this.canvasEl, this.canvasState["CanvasState"]);
+        }
+
+        handleChangedColor (e) {
+            this.color = e.detail.color;
+        }
 
         handleMouseUp(e) {
             if (this.isMouseDown) {
                 this.isMouseDown = false;
             }
-            console.log("mosueup (isMouseDown):" + this.isMouseDown);
         }
 
         handleMouseDown(e) {
-                // React to the mouse down event
             this.isMouseDown = true;
-            var ctx = e.target.getContext('2d');
             var canvas = e.target;
             
-            console.log("mousedown: " + ctx);
-            console.log(e.pageX - canvas.offsetLeft);
+            // set mouse position variables
             this.curX = e.pageX - canvas.offsetLeft;
             this.curY = e.pageY - canvas.offsetTop;
             this.lastX = this.curX;
             this.lastY = this.curY;
-            console.log(this.curX, ", ", this.curY, ", " ,this.lastX, ", ", this.lastY );
         }
 
         handleMouseMove(e) {
             var canvas = e.target;
-            var ctx = e.target.getContext('2d');
 
-            if (this.isMouseDown && ctx) {
-
+            if (this.isMouseDown) {
+                // set mouse position variables
                 this.lastX = this.curX;
                 this.lastY = this.curY;
                 this.curX = e.pageX - canvas.offsetLeft;
                 this.curY = e.pageY - canvas.offsetTop;
-                // paint
-                var paintJSON = this.paint(ctx, this.curX, this.curY, this.lastX, this.lastY, this.color);            // format paint event
-                
-                // this.renderRoot.querySelector('#canvas-details').innerText = "This Client's Canvas: " + JSON.stringify(paintJSON);
 
+                // paint
+                // var paintJSON = this.paint(this.canvasEl, this.curX, this.curY, this.lastX, this.lastY, this.color, this.userAuthId, this.roomId, this.canvasEl.width, this.canvasEl.height);            // format paint event
+                var paintJSON = this.paint(canvas, this.curX, this.curY, this.lastX, this.lastY, this.color, this.userAuthId, this.roomId, canvas.width, canvas.height);            // format paint event
+
+                // make sure the 
+                this.addPaintEventToCanvasState(paintJSON);
                 this.wsConn.send(JSON.stringify(paintJSON));
 
             }
         }
-        paint (ctx, pageX, pageY, lastX, lastY, color) {
-            // Set line width
+        
+        paint (canvasToDrawOn, curX, curY, lastX, lastY, color, userId, roomId, canvasToDrawFromWidth, canvasToDrawFromHeight) {
+            // get the passed in canvas context variable
+            var ctx = canvasToDrawOn.getContext('2d');
+            if (!ctx) {
+                console.log("issue getting canvasToDrawOn 2d context variable");
+                return {"PaintEvent":{}}
+            }
+            // this is the default value for canvas size ... may never get called in production env
+            if (canvasToDrawFromWidth == 0 && canvasToDrawFromHeight == 0) {
+                canvasToDrawFromWidth = 1500;
+                canvasToDrawFromHeight = 700;
+            }  
+
+            // create scale variables to make sure the current canvas displays the paint event in the correct plays based on the canvas it was sent from
+            var scaleX = canvasToDrawOn.width / canvasToDrawFromWidth;
+            var scaleY = canvasToDrawOn.height / canvasToDrawFromHeight;
+
+            // set line width
             ctx.lineWidth = 5;
             ctx.lineJoin = 'round';
             ctx.lineCap = 'round';
             ctx.strokeStyle = color;
         
-            // Paint
+            // paint
             ctx.beginPath();
-            ctx.moveTo(lastX, lastY);
-            ctx.lineTo(pageX, pageY);
+            ctx.moveTo(lastX*scaleX, lastY*scaleY);
+            ctx.lineTo(curX*scaleX, curY*scaleY);
             ctx.closePath();
             ctx.stroke();
 
-            // Return values to send to ws
-            // TODO: Add Room-Id to JSON..can we also add user id?
-            return {"PaintEvent":{curX: this.curX, curY: this.curY, lastX: lastX, lastY: lastY, color: this.color}};
-        }
-        
-        handleChangedColor (e) {
-            console.log("updateColor inROom Canvas: " + e.detail.color, e.currentTarget);
-            this.color = e.detail.color;
+            // return values to send to ws
+            return {"PaintEvent":{EvtTime: Date.now(), UserId: userId, RoomId: roomId, CurX: curX, CurY: curY, LastX: lastX, LastY: lastY, Color: color, CanvasWidth: canvasToDrawOn.width, CanvasHeight: canvasToDrawOn.height}};
         }
 
+        // display all evnets foudn in the jsonPaintEventsList list of PaintEvenets
+        // jsonPaintEventsList: is an array of paint events: [{"PaintEvent":{evtTime: Date.now(), userId: userId, roomId: roomId, curX: curX, curY: curY, lastX: lastX, lastY: lastY, color: color, canvasWidth: canvasToDrawOn.width, canvasHeight: canvasToDrawOn.height}]
+        paintAllEvents(canvasToDrawOn, jsonPaintEventsList) {
+    	    for (let i in jsonPaintEventsList) {
+                this.paint(canvasToDrawOn, jsonPaintEventsList[i]["CurX"], jsonPaintEventsList[i]["CurY"], jsonPaintEventsList[i]["LastX"], jsonPaintEventsList[i]["LastY"], jsonPaintEventsList[i]["Color"], jsonPaintEventsList[i]["AuthId"], jsonPaintEventsList[i]["RoomId"], jsonPaintEventsList[i]["CanvasWidth"], jsonPaintEventsList[i]["CanvasHeight"]);        }
+        }
+
+        // add a paint event to the current CanvasState json boject
+        // jsonPaintEvent: is a single json paint event: {"PaintEvent":{evtTime: Date.now(), userId: userId, roomId: roomId, curX: curX, curY: curY, lastX: lastX, lastY: lastY, color: color, canvasWidth: canvasToDrawOn.width, canvasHeight: canvasToDrawOn.height}
+        addPaintEventToCanvasState(jsonPaintEvent) {
+            this.canvasState["CanvasState"].push(jsonPaintEvent);
+        }
+
+        // initialize the canvas state variable which is a JSON representation of all events on the canvas
+        initCanvasState() {
+            this.canvasState = {"CanvasState": []};
+        }
+        
         connectToWS(ctx) {
+            // check if window has a websocket
             if (window['WebSocket']) {
+                // check websocket connection protocol (wss:// is a secure connection)
                 var wsProtocol = 'ws://';
                 if (location.protocol == "https:") {
                     wsProtocol = 'wss://';
                 }
+                // create websocket connection
                 const conn = new WebSocket(wsProtocol + document.location.host + document.location.pathname + '/ws');
-                console.log(wsProtocol + document.location.host + document.location.pathname + '/ws');
+                // console.log(wsProtocol + document.location.host + document.location.pathname + '/ws');
                 
                 conn.onopen = function () {
-                    // conn.send("WS Open")
-                    // wsStatus.innerHTML = "Selected Color: " + "WS Open";
                     console.log("WS Open");
-                    // this.wsConn = conn;
-                    console.log(this.wsConn);
                 };
 
                 conn.onclose = evt => { 
@@ -405,60 +462,61 @@
                 };
                 
                 conn.onmessage = evt => {
-                    // this.renderRoot.querySelector('#canvas-details').innerText = "Selected Color: " + evt.data;
-                    var canvas = this.renderRoot.querySelector('#canvas');
+                    // find canvas on page by tag
+                    var canvas = this.shadowRoot.querySelector('#canvas');
                     if (!canvas) {
                         console.log("could not find canvas");
                         return
                     }
+                    // get canvas 2d context
                     var ctx = canvas.getContext('2d');
                     if (!ctx) {
                         console.log("could not find canvas");
                         return
                     }
-                    // console.log("onmessage: " + evt.data);
                     // This only works if evt.data is receicing a Paint JSON event
                     if (evt.data) {
                         try {
+                            // try to parse the websocket event (evt) into JSON. If error throw error
                             var jsonEvent = JSON.parse(evt.data);
-                            console.log("jsonEvent");
-                            console.log(jsonEvent);
                             if (!Object.keys(jsonEvent).length > 0) {
                                 return
                             }
 
+                            // get the "key" value of event. (i.e. if {"CanvasEvent":[]}) return "CanvasEvent")
                             var key = Object.keys(jsonEvent)[0];
-                            // console.log(key)
                             switch (key) {
                                 case "PaintEvent":
-                                    console.log("PaintEvent: " + key);
-                                    jsonEvent = jsonEvent[key];
-                                    this.paint(ctx, jsonEvent.curX, jsonEvent.curY, jsonEvent.lastX, jsonEvent.lastY, jsonEvent.color);
+                                    var jsonPaintEvent = jsonEvent[key];
+                                    // this.paint(this.canvasEl, jsonPaintEvent.CurX, jsonPaintEvent.CurY, jsonPaintEvent.LastX, jsonPaintEvent.LastY, jsonPaintEvent.Color, jsonPaintEvent.UserId, jsonPaintEvent.RoomId, jsonPaintEvent.CanvasWidth, jsonPaintEvent.CanvasHeight);
+                                    this.paint(canvas, jsonPaintEvent.CurX, jsonPaintEvent.CurY, jsonPaintEvent.LastX, jsonPaintEvent.LastY, jsonPaintEvent.Color, jsonPaintEvent.UserId, jsonPaintEvent.RoomId, jsonPaintEvent.CanvasWidth, jsonPaintEvent.CanvasHeight);
+                                    this.addPaintEventToCanvasState(jsonPaintEvent);
                                     break;
+
                                 case "CanvasState":
-                                    console.log("CanvasState: " + key);
-                                    jsonEvent = jsonEvent[key];
-
-                                    for (let i = 0; i < jsonEvent.length; i++) {
-                                        // draw from senders canvas
-                                        this.paint(ctx, jsonEvent[i]["CurX"], jsonEvent[i]["CurY"], jsonEvent[i]["LastX"], jsonEvent[i]["LastY"], jsonEvent[i]["Color"]);
-                                    }
-
+                                    this.canvasState = jsonEvent;
+                                    var jsonPaintEventsList = jsonEvent[key];
+                                    this.paintAllEvents(canvas, jsonPaintEventsList);
                                     break;
-                                case "ActiveUsers":
-                                    console.log("ActiveUsers");
-                                    console.log(jsonEvent[key]);
-                                    this.userList = JSON.stringify(jsonEvent);
-                                    // this.renderRoot.querySelector('#active-users').innerText = "Active Users: " + JSON.stringify(jsonEvent);
 
+                                case "ActiveUsers":
+                                    this.userList = JSON.stringify(jsonEvent);
+                                    break;
+
+                                case "CurrentUser":
+                                    this.userAuthId = jsonEvent[key]["AuthId"];
+                                    break;
+
+                                case "CurrentRoom":
+                                    this.roomId = jsonEvent[key]["Id"];
+                                    this.roomName = jsonEvent[key]["Name"];
                                     break;
                                 default:
                                     console.log("Other event: "+ key);
                                     break;
                             }
-                            
                         } catch(e) {
-                            console.log("error parsing json event from websocket: "+ e); // error in the above string (in this case, yes)!
+                            console.log("error parsing json event from websocket: " + e); // error in the above string (in this case, yes)!
                         }
                     }
                 };
