@@ -28,8 +28,10 @@
      */var l,o;class s extends a$1{constructor(){super(...arguments),this.renderOptions={host:this},this._$Dt=void 0;}createRenderRoot(){var t,e;const i=super.createRenderRoot();return null!==(t=(e=this.renderOptions).renderBefore)&&void 0!==t||(e.renderBefore=i.firstChild),i}update(t){const i=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(t),this._$Dt=w(i,this.renderRoot,this.renderOptions);}connectedCallback(){var t;super.connectedCallback(),null===(t=this._$Dt)||void 0===t||t.setConnected(!0);}disconnectedCallback(){var t;super.disconnectedCallback(),null===(t=this._$Dt)||void 0===t||t.setConnected(!1);}render(){return b}}s.finalized=!0,s._$litElement$=!0,null===(l=globalThis.litElementHydrateSupport)||void 0===l||l.call(globalThis,{LitElement:s});const n=globalThis.litElementPolyfillSupport;null==n||n({LitElement:s});(null!==(o=globalThis.litElementVersions)&&void 0!==o?o:globalThis.litElementVersions=[]).push("3.0.2");
 
     r$2 `
-    .clickable {
+    .clickable:hover {
         cursor: pointer;
+        transition: transform 500ms;
+        transform: scale(1.1);
     }
     
 `;
@@ -157,7 +159,7 @@
     .header {
         /* background-color: #444; */
         color: #000;
-        padding: 20px;
+        padding: 20px 10px 20px 10px;
         font-size: 250%;
         text-align: center;
         margin-bottom: 10px;
@@ -204,19 +206,32 @@
         background-color: #fff;
         box-shadow: 0px 0px 10px 1.5px #4040407a;
         border-radius: 7px;
-        width: 100%; /* Used to fit canvas on the screen */ 
+        width: 100%; // Used to fit canvas on the screen 
+       
     }
-    .canvas-parent {
-        padding: 20px;
-        margin: auto;
+    .room-canvas-parent {
+        padding: 10px 2px 10px 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .canvas-row {
+        display: flex;
+    }
+    .canvas-container {
+        flex:1;
+        padding-right: 10px;
     }
 `;
 
     r$2 `
         #palette-parent {
-            top: 50%;
-            float: right;
-            vertical-align: top;
+            padding-right: 10px;
+        }
+        #palette-inner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
         input {
             vertical-align: top;
@@ -225,6 +240,12 @@
         }
         label {
             margin: 10px;
+        }
+        img {
+            padding-top: 10px;
+            width: 35px;    
+            height: 35px;
+
         }
     #color {
         -webkit-appearance: none;
@@ -317,7 +338,12 @@
             this.initCanvasState();
 
             // Set room ID
-            this.userAuthId = "";
+            this.currentUser = {
+                AuthId: "",
+                Name: "",
+                Email: "",
+            };
+
             this.roomId = "";
             this.roomName = "";
             
@@ -325,11 +351,18 @@
 
         render() {
             return p`
-            <div id="canvas-parent" class="canvas-parent" @changed-color="${this.handleChangedColor}">
+            <div id="canvas-parent" class="room-canvas-parent" @changed-color="${this.handleChangedColor}">
                 <active-user-bar .userList="${this.userList}"></active-user-bar>
-                
-                <tool-palette .initColor="${this.color}"></tool-palette>
-                <canvas id="canvas" width="${this.width}" height="${this.height}" @mousedown="${this.handleMouseDown}" @mouseup="${this.handleMouseUp}" @mousemove="${this.handleMouseMove}" ></canvas>
+
+                <div class="canvas-row">
+                    <div class="canvas-container">
+                        <canvas id="canvas" width="${this.width}" height="${this.height}" @mousedown="${this.handleMouseDown}" @mouseup="${this.handleMouseUp}" @mousemove="${this.handleMouseMove}"  @touchstart="${this.handleMouseDown}" @touchend="${this.handleMouseUp}" @touchmove="${this.handleMouseMove}"></canvas>
+                    </div>
+                    <tool-palette .initColor="${this.color}" .currentUser="${this.currentUser}" .roomName="${this.roomName}"></tool-palette>
+
+                </div>
+
+
             </div>  
         `
         }
@@ -355,23 +388,38 @@
         handleMouseDown(e) {
             this.isMouseDown = true;
             var canvas = e.target;
+            var firstTouch;
+
+            if (e.type == "touchstart") { 
+                // disable page scroll
+                e.preventDefault();
+                // only handle first touch
+                firstTouch = e.touches[0]; 
+            }
             
             // set mouse position variables
-            this.curX = e.pageX - canvas.offsetLeft;
-            this.curY = e.pageY - canvas.offsetTop;
+            this.curX = (e.pageX || parseInt(firstTouch.pageX)) - canvas.offsetLeft;
+            this.curY = (e.pageY || parseInt(firstTouch.pageY)) - canvas.offsetTop;
             this.lastX = this.curX;
             this.lastY = this.curY;
         }
 
         handleMouseMove(e) {
             var canvas = e.target;
+            var firstTouch;
+
+            if (e.type == "touchmove") { 
+                // disable page scroll
+                e.preventDefault();
+                firstTouch = e.touches[0]; 
+            }
 
             if (this.isMouseDown) {
                 // set mouse position variables
                 this.lastX = this.curX;
                 this.lastY = this.curY;
-                this.curX = e.pageX - canvas.offsetLeft;
-                this.curY = e.pageY - canvas.offsetTop;
+                this.curX = (e.pageX || parseInt(firstTouch.pageX)) - canvas.offsetLeft;
+                this.curY = (e.pageY || parseInt(firstTouch.pageY)) - canvas.offsetTop;
 
                 // paint
                 // var paintJSON = this.paint(this.canvasEl, this.curX, this.curY, this.lastX, this.lastY, this.color, this.userAuthId, this.roomId, this.canvasEl.width, this.canvasEl.height);            // format paint event
@@ -504,7 +552,11 @@
                                     break;
 
                                 case "CurrentUser":
-                                    this.userAuthId = jsonEvent[key]["AuthId"];
+                                    this.currentUser.AuthId = jsonEvent[key]["AuthId"];
+                                    this.currentUser.Name = jsonEvent[key]["Name"];
+                                    this.currentUser.Email = jsonEvent[key]["Email"];
+                                    console.log(this.currentUser);
+                                    // this.userAuthId = jsonEvent[key]["AuthId"];
                                     break;
 
                                 case "CurrentRoom":
