@@ -27,9 +27,11 @@
      * SPDX-License-Identifier: BSD-3-Clause
      */var l,o;class s extends a$1{constructor(){super(...arguments),this.renderOptions={host:this},this._$Dt=void 0;}createRenderRoot(){var t,e;const i=super.createRenderRoot();return null!==(t=(e=this.renderOptions).renderBefore)&&void 0!==t||(e.renderBefore=i.firstChild),i}update(t){const i=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(t),this._$Dt=w(i,this.renderRoot,this.renderOptions);}connectedCallback(){var t;super.connectedCallback(),null===(t=this._$Dt)||void 0===t||t.setConnected(!0);}disconnectedCallback(){var t;super.disconnectedCallback(),null===(t=this._$Dt)||void 0===t||t.setConnected(!1);}render(){return b}}s.finalized=!0,s._$litElement$=!0,null===(l=globalThis.litElementHydrateSupport)||void 0===l||l.call(globalThis,{LitElement:s});const n=globalThis.litElementPolyfillSupport;null==n||n({LitElement:s});(null!==(o=globalThis.litElementVersions)&&void 0!==o?o:globalThis.litElementVersions=[]).push("3.0.2");
 
-    r$2 `
-    .clickable {
+    const globalStyles = r$2 `
+    .clickable:hover {
         cursor: pointer;
+        transition: transform 500ms;
+        transform: scale(1.1);
     }
     
 `;
@@ -204,19 +206,31 @@
         background-color: #fff;
         box-shadow: 0px 0px 10px 1.5px #4040407a;
         border-radius: 7px;
-        width: 100%; /* Used to fit canvas on the screen */ 
+        width: 100%; // Used to fit canvas on the screen 
+       
     }
-    .canvas-parent {
-        padding: 20px;
-        margin: auto;
+    .room-canvas-parent {
+        padding: 10px 2px 10px 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .canvas-row {
+        display: flex;
+    }
+    .canvas-container {
+        flex:1;
+        padding-right: 15px;
     }
 `;
 
     const toolPaletteStyles = r$2 `
         #palette-parent {
-            top: 50%;
-            float: right;
-            vertical-align: top;
+            padding-right: 20px;
+        }
+        #palette-inner {
+            display: flex;
+            flex-direction: column;
         }
         input {
             vertical-align: top;
@@ -225,6 +239,12 @@
         }
         label {
             margin: 10px;
+        }
+        img {
+            padding-top: 10px;
+            width: 42px;    
+            height: 42px;
+
         }
     #color {
         -webkit-appearance: none;
@@ -264,7 +284,7 @@
             initColor: {},
         };
 
-        static styles = toolPaletteStyles;
+        static styles = [toolPaletteStyles, globalStyles];
         connectedCallback() {
             super.connectedCallback();
         
@@ -277,10 +297,10 @@
         render () {
             return p`
             <div id="palette-parent">
-                <div>
-                    <label for="color"> Color</label>
-                    <span id="color_front" @click="${this.selectNewColor}"></span>
-                    <input type="color" id="color" class="color palette-element" value="${this.initColor}" @change="${this.dispatchChangeColor}" >
+                <div id="palette-inner">
+                    <span class="" id="color_front" @click="${this.selectNewColor}"></span>
+                    <input type="color" id="color" class="clickable color palette-element" value="${this.initColor}" @change="${this.dispatchChangeColor}" >
+                    <img class="clickable" src="https://www.freeiconspng.com/uploads/share-sharing-icon-29.png" @click="${this.handleShare}"/>
                 </div>
             </div>
         `;
@@ -304,6 +324,10 @@
             };
             this.dispatchEvent(new CustomEvent('changed-color', options));
         }
+        handleShare(e) {
+            console.log("share clicked:", e);
+        }
+
 
     }
     customElements.define('tool-palette', ToolPalette);

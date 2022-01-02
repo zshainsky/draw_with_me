@@ -41,8 +41,10 @@
      */const o=e(class extends i{constructor(t$1){var i;if(super(t$1),t$1.type!==t.ATTRIBUTE||"class"!==t$1.name||(null===(i=t$1.strings)||void 0===i?void 0:i.length)>2)throw Error("`classMap()` can only be used in the `class` attribute and must be the only part in the attribute.")}render(t){return " "+Object.keys(t).filter((i=>t[i])).join(" ")+" "}update(i,[s]){var r,o;if(void 0===this.st){this.st=new Set,void 0!==i.strings&&(this.et=new Set(i.strings.join(" ").split(/\s/).filter((t=>""!==t))));for(const t in s)s[t]&&!(null===(r=this.et)||void 0===r?void 0:r.has(t))&&this.st.add(t);return this.render(s)}const e=i.element.classList;this.st.forEach((t=>{t in s||(e.remove(t),this.st.delete(t));}));for(const t in s){const i=!!s[t];i===this.st.has(t)||(null===(o=this.et)||void 0===o?void 0:o.has(t))||(i?(e.add(t),this.st.add(t)):(e.remove(t),this.st.delete(t)));}return b}});
 
     const globalStyles = r$2 `
-    .clickable {
+    .clickable:hover {
         cursor: pointer;
+        transition: transform 500ms;
+        transform: scale(1.1);
     }
     
 `;
@@ -217,19 +219,31 @@
         background-color: #fff;
         box-shadow: 0px 0px 10px 1.5px #4040407a;
         border-radius: 7px;
-        width: 100%; /* Used to fit canvas on the screen */ 
+        width: 100%; // Used to fit canvas on the screen 
+       
     }
-    .canvas-parent {
-        padding: 20px;
-        margin: auto;
+    .room-canvas-parent {
+        padding: 10px 2px 10px 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .canvas-row {
+        display: flex;
+    }
+    .canvas-container {
+        flex:1;
+        padding-right: 15px;
     }
 `;
 
     r$2 `
         #palette-parent {
-            top: 50%;
-            float: right;
-            vertical-align: top;
+            padding-right: 20px;
+        }
+        #palette-inner {
+            display: flex;
+            flex-direction: column;
         }
         input {
             vertical-align: top;
@@ -238,6 +252,12 @@
         }
         label {
             margin: 10px;
+        }
+        img {
+            padding-top: 10px;
+            width: 42px;    
+            height: 42px;
+
         }
     #color {
         -webkit-appearance: none;
