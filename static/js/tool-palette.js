@@ -231,6 +231,7 @@
         #palette-inner {
             display: flex;
             flex-direction: column;
+            align-items: center;
         }
         input {
             vertical-align: top;
@@ -242,8 +243,8 @@
         }
         img {
             padding-top: 10px;
-            width: 42px;    
-            height: 42px;
+            width: 35px;    
+            height: 35px;
 
         }
     #color {
@@ -282,6 +283,8 @@
     class ToolPalette extends s { 
         static properties = {
             initColor: {},
+            roomName: {},
+            currentUser: {type: Object},
         };
 
         static styles = [toolPaletteStyles, globalStyles];
@@ -292,6 +295,8 @@
         constructor () {
             super();
             console.log();
+            this.roomName = "";
+            this.currentUser = {};
         }
 
         render () {
@@ -300,8 +305,10 @@
                 <div id="palette-inner">
                     <span class="" id="color_front" @click="${this.selectNewColor}"></span>
                     <input type="color" id="color" class="clickable color palette-element" value="${this.initColor}" @change="${this.dispatchChangeColor}" >
-                    <img class="clickable" src="https://www.freeiconspng.com/uploads/share-sharing-icon-29.png" @click="${this.handleShare}"/>
-                </div>
+                    <a target="_blank" href="mailto:?subject=Come%20Draw%20with%20Me!&body=${this.currentUser.Name}%20has%20invited%20you%20to%20Draw%20with%20Me%20in%20this%20new%20room%20(${this.roomName}).%0A%0AClick%20this%20link%20to%20join%3A%20${document.URL}%0A%0A%2D%20The%20Draw%20with%20Me%20team">
+                        <img class="clickable" src="static/img/invite.png" @click="${this.handleShare}"/>
+                    </a>
+                  </div>
             </div>
         `;
         }

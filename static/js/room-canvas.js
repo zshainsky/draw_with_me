@@ -231,6 +231,7 @@
         #palette-inner {
             display: flex;
             flex-direction: column;
+            align-items: center;
         }
         input {
             vertical-align: top;
@@ -242,8 +243,8 @@
         }
         img {
             padding-top: 10px;
-            width: 42px;    
-            height: 42px;
+            width: 35px;    
+            height: 35px;
 
         }
     #color {
@@ -337,7 +338,12 @@
             this.initCanvasState();
 
             // Set room ID
-            this.userAuthId = "";
+            this.currentUser = {
+                AuthId: "",
+                Name: "",
+                Email: "",
+            };
+
             this.roomId = "";
             this.roomName = "";
             
@@ -352,7 +358,7 @@
                     <div class="canvas-container">
                         <canvas id="canvas" width="${this.width}" height="${this.height}" @mousedown="${this.handleMouseDown}" @mouseup="${this.handleMouseUp}" @mousemove="${this.handleMouseMove}"  @touchstart="${this.handleMouseDown}" @touchend="${this.handleMouseUp}" @touchmove="${this.handleMouseMove}"></canvas>
                     </div>
-                    <tool-palette .initColor="${this.color}"></tool-palette>
+                    <tool-palette .initColor="${this.color}" .currentUser="${this.currentUser}" .roomName="${this.roomName}"></tool-palette>
 
                 </div>
 
@@ -546,7 +552,11 @@
                                     break;
 
                                 case "CurrentUser":
-                                    this.userAuthId = jsonEvent[key]["AuthId"];
+                                    this.currentUser.AuthId = jsonEvent[key]["AuthId"];
+                                    this.currentUser.Name = jsonEvent[key]["Name"];
+                                    this.currentUser.Email = jsonEvent[key]["Email"];
+                                    console.log(this.currentUser);
+                                    // this.userAuthId = jsonEvent[key]["AuthId"];
                                     break;
 
                                 case "CurrentRoom":

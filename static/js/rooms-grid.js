@@ -244,6 +244,7 @@
         #palette-inner {
             display: flex;
             flex-direction: column;
+            align-items: center;
         }
         input {
             vertical-align: top;
@@ -255,8 +256,8 @@
         }
         img {
             padding-top: 10px;
-            width: 42px;    
-            height: 42px;
+            width: 35px;    
+            height: 35px;
 
         }
     #color {
