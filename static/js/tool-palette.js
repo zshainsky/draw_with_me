@@ -159,7 +159,7 @@
     .header {
         /* background-color: #444; */
         color: #000;
-        padding: 20px;
+        padding: 20px 10px 20px 10px;
         font-size: 250%;
         text-align: center;
         margin-bottom: 10px;
@@ -220,13 +220,13 @@
     }
     .canvas-container {
         flex:1;
-        padding-right: 15px;
+        padding-right: 10px;
     }
 `;
 
     const toolPaletteStyles = r$2 `
         #palette-parent {
-            padding-right: 20px;
+            padding-right: 10px;
         }
         #palette-inner {
             display: flex;
