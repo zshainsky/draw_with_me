@@ -332,13 +332,13 @@
         constructor() {
             super();
             this.stopAnimation = false;
-            console.log("constructor:",this.stopAnimation);
+            // console.log("constructor:",this.stopAnimation);
             this.counter = 0;
             this.maxCounter = 0;
         }
 
         render() {
-            console.log(this.selectedRoomId + ", " + this.id, this.selectedRoomId != "");
+            // console.log(this.selectedRoomId + ", " + this.id, this.selectedRoomId != "");
             return p`
                 <div class="clickable open-room-btn center">
                     <div class="name">${this.name}</div>
@@ -408,7 +408,7 @@
             var canvasState = this.canvasState;
 
             var animatePaint = function() {
-                console.log(counter);
+                // console.log(counter);
                 // repeate until stopAnimation is set to true
                 if (this.stopAnimation) {
                     return; 
@@ -423,7 +423,7 @@
                 }
                 // after all paint events have been displayed, clear canvas and loop through them again
                 if (counter == maxCounter) {  
-                    console.log("counter==maxCounter: ",counter,maxCounter);
+                    // console.log("counter==maxCounter: ",counter,maxCounter);
                     counter = 0; 
                     ctx.clearRect(0,0,canvas.width,canvas.height);
                 }
@@ -439,13 +439,13 @@
         }
 
         handleMouseEnter(e){
-            console.log("enter", e);
+            // console.log("enter", e);
             // reset couters and start animating
             this.resetCounters();
             this.startAnimating();
         }
         handleMouseLeave(e){
-            console.log("leave");
+            // console.log("leave");
             // Stop execution
             this.stopAnimation = true;
             // make sure canvasStae exists

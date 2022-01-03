@@ -555,7 +555,7 @@
                                     this.currentUser.AuthId = jsonEvent[key]["AuthId"];
                                     this.currentUser.Name = jsonEvent[key]["Name"];
                                     this.currentUser.Email = jsonEvent[key]["Email"];
-                                    console.log(this.currentUser);
+                                    // console.log(this.currentUser);
                                     // this.userAuthId = jsonEvent[key]["AuthId"];
                                     break;
 

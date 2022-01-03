@@ -311,8 +311,8 @@
             this.isRoomSelected = false;
             this.selectedRoomId = "";
             this.createImg = "static/img/create-new-room2.png";
-            console.log(this.isRoomSelected);
-            console.log(this.rooms, !this.rooms);
+            // console.log(this.isRoomSelected);
+            // console.log(this.rooms, !this.rooms);
             this.classes = {"single-grid-element": true};
             // if rooms doesn't exist, create it
             if(!this.rooms) {
@@ -326,10 +326,10 @@
             const response = await fetch('/get-rooms');
             const contentType = response.headers.get("content-type");
 
-            console.log(response.status, contentType);
+            // console.log(response.status, contentType);
             if (contentType == "application/json") {
                 const jsonResponse = await response.json();
-                console.log(jsonResponse);  
+                // console.log(jsonResponse);  
                 this.rooms = jsonResponse["RoomsList"];
                 this.loading = false;
             } else {
@@ -342,16 +342,16 @@
         async createRoom() {
             this.loading = true;
             const response = await fetch('/create-room');
-            console.log(response);
+            // console.log(response);
             const jsonResponse = await response.json();
-            console.log(jsonResponse);
+            // console.log(jsonResponse);
             // add to rooms
             if(this.rooms){
                 this.rooms.push(jsonResponse);
             } else {
                 this.rooms = [jsonResponse];
             }
-            console.log('/room-' + jsonResponse["Id"]);
+            // console.log('/room-' + jsonResponse["Id"]);
             this.loading = false;
         }
 
@@ -410,7 +410,7 @@
                         e.currentTarget.parentElement.classList.toggle("click");
 
                         this.selectedRoomId = "";
-                        console.log("hide preview: " + this.selectedRoomId);
+                        // console.log("hide preview: " + this.selectedRoomId);
                     }
                 }
             } else { // no other elements in the grid have been clicked
@@ -426,8 +426,8 @@
         
         handleOpenRoom (e) {
             var room_id = e.currentTarget.id;
-            console.log("open room" + this.isRoomSelected);
-            console.log(e.currentTarget.id);
+            // console.log("open room" + this.isRoomSelected);
+            // console.log(e.currentTarget.id);
             // open room in preview
             window.open("/room-"+room_id);
             
@@ -437,10 +437,10 @@
         }
 
         setGridColumns(roomsList){
-            console.log("rooms length: ", roomsList.length);
+            // console.log("rooms length: ", roomsList.length);
             if(roomsList) {
                 if (roomsList.length > 1) { 
-                    console.log("rooms length > 1");
+                    // console.log("rooms length > 1");
                     this.classes = {"single-grid-element": false}; 
                 }
             }
