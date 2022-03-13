@@ -26,13 +26,13 @@ A Hub handles all event communication (inbound & outbound) between clients for a
 3. Save canvas state to the persistent layer (DB)
 
 ### Client
-A Client handles connection to the FE via websocket connection, communication of FE events to the Hub, and receiving broadcasted events from the Hub to update the FE through the websocket connection. The Client runs 2 goroutines upon a new client creation. One goroutine handles listening for events from the FE to send to the Hub (`sendToHub()`) and the other handles listening for broadcasted events recieved from the Hub (`writeToWS()`).
+A Client handles connection to the FE via websocket connection, communication of FE events to the Hub, and receiving broadcasted events from the Hub to update the FE through the websocket connection. The Client runs 2 goroutines upon a new client creation. One goroutine handles listening for events from the FE to send to the Hub (`sendToHub()`) and the other handles listening for broadcasted events received from the Hub (`writeToWS()`).
 
 The Client handles the following operations:
 1. Establish Websocket connections upon user logging into a room
 2. Send activation message to Hub
 3. Send paint events to the Hub
-4. Recieve paint events from the Hub and update FE with recieved events
+4. Recieve paint events from the Hub and update FE with received events
 
 __Network flow example__:
 
@@ -65,11 +65,11 @@ Example Canvas State JSON Format:
 ## Frontend Architecture
 The Frontend architecture was built from scratch using WebComponents on top of [lit element](https://lit.dev/). 
 
-Elements are built in the [lib/components/](./lib/components/) folder. These elements are packaged using npm [rollup](https://www.npmjs.com/package/rollup) and stored to be served in the [lib/static/js/] folder. Details of the rollup config can be found here [lib/rollup.config.js](./lib/rollup.config.js). All HTML pages reference packaged js from the static folder. Please view [lib/package.json](./lib/package.json) for details on other dependencies. All CSS is definied in the [lib/components/styles.js](./lib/components/styles.js) file.
+Elements are built in the [lib/components/](./lib/components/) folder. These elements are packaged using npm [rollup](https://www.npmjs.com/package/rollup) and stored to be served in the [lib/static/js/] folder. Details of the rollup config can be found here [lib/rollup.config.js](./lib/rollup.config.js). All HTML pages reference packaged js from the static folder. Please view [lib/package.json](./lib/package.json) for details on other dependencies. All CSS is defined in the [lib/components/styles.js](./lib/components/styles.js) file.
 
 
 ## Deployment
-This app is deployed using the free tier of Heroku (Hobby Dev). It automatically deploys new versions when changes are commited to the heroku-main branch of this git repo. This app uses the `heroku/go` build pack and is deployed using a `web` dyno. See the definition in the [Procfile](./Procfile). I have also added the PostgreSQL Add-on and configured the database manually using the [[schema.sql](./db/schema.sql) file.
+This app is deployed using the free tier of Heroku (Hobby Dev). It automatically deploys new versions when changes are committed to the heroku-main branch of this git repo. This app uses the `heroku/go` build pack and is deployed using a `web` Dyno. See the definition in the [Procfile](./Procfile). I have also added the PostgreSQL Add-on and configured the database manually using the [[schema.sql](./db/schema.sql) file.
 
 ## Resources
 1. Architecture/Design: [https://outcrawl.com/realtime-collaborative-drawing-go](https://outcrawl.com/realtime-collaborative-drawing-go)
